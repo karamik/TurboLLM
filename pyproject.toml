@@ -1,0 +1,116 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "turbollm"
+version = "1.0.0"
+description = "High‑Performance Inference Engine for Massive Contexts"
+readme = "README.md"
+authors = [
+    {name = "TurboLLM Team", email = "maintainers@turbollm.ai"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.1.0",
+    "torchvision",
+    "torchaudio",
+    "vllm>=0.4.0",
+    "transformers>=4.36.0",
+    "tokenizers>=0.15.0",
+    "accelerate>=0.25.0",
+    "bitsandbytes>=0.41.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.0.0",
+    "sse-starlette>=1.6.0",
+    "numpy>=1.24.0",
+    "safetensors>=0.4.0",
+    "einops>=0.7.0",
+    "prometheus-client>=0.19.0",
+    "python-json-logger>=2.0.0",
+    "requests>=2.31.0",
+    "tqdm>=4.65.0",
+    "huggingface-hub>=0.19.0",
+]
+
+[project.optional-dependencies]
+enterprise = [
+    "redis>=5.0.0",
+    "python-jose>=3.3.0",
+    "passlib>=1.7.4",
+    "bcrypt>=4.1.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "httpx>=0.25.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/karamik/TurboLLM"
+Repository = "https://github.com/karamik/TurboLLM"
+Documentation = "https://github.com/karamik/TurboLLM/wiki"
+Issues = "https://github.com/karamik/TurboLLM/issues"
+
+[project.scripts]
+turbollm-serve = "turbollm.serve:main"
+turbollm-download = "scripts.download_model:main"
+
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = ["venv", ".eggs", ".git", "__pycache__", "build", "dist"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+exclude = ["venv", ".eggs", ".git", "__pycache__", "build", "dist"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-v --tb=short"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["turbollm*", "scripts*"]
+exclude = ["tests*", "configs*"]
