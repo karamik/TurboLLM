@@ -1,0 +1,20 @@
+# Grafana datasource configuration for Prometheus
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090   # имя сервиса в docker-compose
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "30s"
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: 2.45.0
+    # Можно добавить Basic Auth, если требуется
+    # secureJsonData:
+    #   password: "password"
