@@ -1,0 +1,219 @@
+# ================================================================
+# TurboLLM Helm Chart – Values
+# ================================================================
+
+# -------------------- Global settings --------------------
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: "standard"
+  namespace: "turbollm"
+
+# -------------------- Main inference engine --------------------
+inference:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: turbollm/inference
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # Model configuration
+  model:
+    path: "/app/model"
+    # Quantization: "fp8" or ""
+    quantization: "fp8"
+    kvCacheDtype: "fp8"
+    maxModelLen: 32768
+    gpuMemoryUtilization: 0.90
+    maxNumSeqs: 256
+    maxNumBatchedTokens: 8192
+
+  # Resource limits (adjust for your GPU)
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+      memory: 32Gi
+      cpu: 8
+    requests:
+      nvidia.com/gpu: 1
+      memory: 24Gi
+      cpu: 4
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8000
+    annotations: {}
+
+  # Environment variables (additional)
+  env:
+    - name: LOG_LEVEL
+      value: "INFO"
+    - name: ENABLE_METRICS
+      value: "true"
+
+  # Volume mounts for models and configs
+  volumes:
+    - name: model-storage
+      persistentVolumeClaim:
+        claimName: model-pvc
+    - name: configs
+      configMap:
+        name: turbollm-config
+
+  volumeMounts:
+    - name: model-storage
+      mountPath: /app/model
+    - name: configs
+      mountPath: /app/configs
+
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+
+  # Horizontal Pod Autoscaling (HPA)
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  nodeSelector:
+    cloud.google.com/gke-accelerator: "nvidia-tesla-a100"
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"
+
+# -------------------- Monitoring (Prometheus + Grafana) --------------------
+monitoring:
+  enabled: false
+
+  prometheus:
+    serviceMonitor:
+      enabled: true
+      interval: 15s
+      path: /metrics
+      port: 8000
+
+  grafana:
+    enabled: false
+    adminPassword: "admin"
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+
+# -------------------- Enterprise modules (proprietary) --------------------
+enterprise:
+  enabled: false
+
+  loadBalancer:
+    enabled: false
+    replicaCount: 1
+    image:
+      repository: turbollm/load-balancer
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 8080
+    upstream: "http://inference:8000"
+    redisUrl: "redis://cache:6379"
+
+  cache:
+    enabled: false
+    image:
+      repository: redis
+      tag: 7-alpine
+    service:
+      port: 6379
+    persistence:
+      enabled: true
+      size: 10Gi
+
+  dashboard:
+    enabled: false
+    replicaCount: 1
+    image:
+      repository: turbollm/dashboard
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 80
+    apiUrl: "http://inference:8000"
+    balancerUrl: "http://load-balancer:8080"
+
+  security:
+    enabled: false
+    filterRulesPath: "/app/configs/filter_rules.json"
+    jwtSecret: "change_me_in_production"
+    adminApiKeys:
+      - "admin_key_1"
+      - "admin_key_2"
+
+# -------------------- Ingress (external access) --------------------
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: api.turbollm.ai
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: inference
+              port:
+                number: 8000
+  tls:
+    - hosts:
+        - api.turbollm.ai
+      secretName: turbollm-tls
+
+# -------------------- Persistent Volumes --------------------
+persistence:
+  model:
+    enabled: true
+    storageClassName: "standard"
+    accessModes:
+      - ReadWriteOnce
+    size: 50Gi
+    # existingClaim: "model-pvc"
+
+  logs:
+    enabled: true
+    storageClassName: "standard"
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+
+# -------------------- ConfigMap (runtime config) --------------------
+configs:
+  # Override filter_rules.json content if needed
+  filterRules: |
+    {
+      "version": "1.0",
+      "rules": []
+    }
+  prometheusConfig: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: turbollm
+        static_configs:
+          - targets: ["inference:8000"]
