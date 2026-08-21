@@ -1,0 +1,44 @@
+# ============================================================
+# TurboLLM Development Dockerfile
+# Содержит инструменты для отладки и горячей перезагрузки
+# ============================================================
+
+FROM nvidia/cuda:12.2.0-base-ubuntu22.04
+
+# Устанавливаем системные зависимости
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3-pip \
+    git \
+    wget \
+    curl \
+    vim \
+    htop \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Создаём ссылку python3 -> python
+RUN ln -s /usr/bin/python3.10 /usr/bin/python
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Копируем только requirements для кеширования слоёв
+COPY requirements.txt .
+
+# Устанавливаем зависимости, включая dev-пакеты
+RUN pip3 install --no-cache-dir -r requirements.txt && \
+    pip3 install --no-cache-dir debugpy pytest black flake8 mypy pre-commit
+
+# Копируем исходный код (будет переопределён через volume при разработке)
+COPY . .
+
+# Устанавливаем сам пакет в режиме editable (для разработки)
+RUN pip3 install -e .
+
+# Открываем порт для API и для дебагера
+EXPOSE 8000 5678
+
+# Команда по умолчанию – запуск с горячей перезагрузкой через uvicorn
+# (используется в docker-compose.override.yml)
+CMD ["uvicorn", "turbollm.serve:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
