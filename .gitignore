@@ -1,0 +1,141 @@
+# ============================================================
+# TurboLLM – .gitignore
+# Игнорируем временные, локальные и конфиденциальные файлы
+# ============================================================
+
+# -------------------- Python --------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+.mypy_cache/
+*.cover
+.tox/
+nosetests.xml
+htmlcov/
+.direnv/
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# -------------------- IDE и редакторы --------------------
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-*
+.project
+.pydevproject
+.settings/
+*.code-workspace
+
+# -------------------- Docker / контейнеры --------------------
+*.log
+*.pid
+*.pid.lock
+.dockerignore
+docker-compose.override.yml
+
+# -------------------- Модели и большие файлы --------------------
+models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.pb
+*.h5
+*.pickle
+*.joblib
+*.parquet
+*.arrow
+*.hdf5
+
+# -------------------- Данные и логи --------------------
+logs/
+*.log
+*.tmp
+temp/
+data/
+*.csv
+*.xlsx
+*.jsonl
+*.ndjson
+*.db
+*.sqlite3
+
+# -------------------- Секреты и конфигурации --------------------
+.env
+.env.local
+.env.*.local
+*.secret
+*.key
+*.pem
+*.crt
+*.csr
+*.jks
+*.keystore
+configs/*.local.*
+configs/*_secret.*
+*_private.*
+secrets/
+.aws/
+*.token
+
+# -------------------- Терраформ / Helm --------------------
+*.tfstate
+*.tfstate.*
+.terraform/
+*.lock.hcl
+charts/*/values.local.yaml
+charts/*/values.*.yaml
+!charts/*/values.yaml
+
+# -------------------- Grafana / Prometheus (локальные данные) --------------------
+grafana/data/
+prometheus/data/
+*.db
+*.wal
+*.tmp
+*.segment
+
+# -------------------- Временные файлы системные --------------------
+Thumbs.db
+*.bak
+*.orig
+*.rej
+*.patch
+*.diff
+*.tmp
+*.temp
+*~
+\#*#
+.\#*
+
+# -------------------- Прочее --------------------
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.mp4
+*.mp3
+*.wav
+*.mov
+*.avi
