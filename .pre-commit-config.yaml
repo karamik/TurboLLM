@@ -1,0 +1,78 @@
+# ============================================================
+# Pre-commit hooks for TurboLLM
+# Устанавливается: pre-commit install
+# ============================================================
+
+repos:
+  # Базовые проверки (официальные хуки)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=10240']  # 10 MB
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ['--branch', 'main']
+
+  # Форматирование Python (Black)
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3.10
+
+  # Сортировка импортов (isort)
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--line-length=88"]
+
+  # Линтинг (Flake8)
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.0
+    hooks:
+      - id: flake8
+        args: ["--max-line-length=88", "--extend-ignore=E203,W503"]
+        additional_dependencies:
+          - flake8-bugbear
+          - flake8-docstrings
+
+  # Проверка типов (mypy)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        args: ["--ignore-missing-imports", "--disallow-untyped-defs"]
+        additional_dependencies:
+          - types-requests
+          - types-setuptools
+
+  # Проверка безопасности (bandit) – не блокирующая, только предупреждения
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: ["-r", "turbollm", "-ll", "-x", "tests/"]
+        # -ll = medium severity, -x exclude tests
+        # Можно сделать warn-only, чтобы не блокировать коммит:
+        # args: ["-r", "turbollm", "-ll", "-f", "screen", "--exit-zero"]
+
+  # Проверка на уязвимые зависимости (pip-audit) – опционально
+  # - repo: https://github.com/pypa/pip-audit
+  #   rev: v2.7.2
+  #   hooks:
+  #     - id: pip-audit
+  #       args: ["--requirement", "requirements.txt", "--no-deps"]
+
+  # Проверка секретов (gitleaks) – опционально
+  # - repo: https://github.com/gitleaks/gitleaks
+  #   rev: v8.18.4
+  #   hooks:
+  #     - id: gitleaks
