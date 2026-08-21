@@ -1,0 +1,53 @@
+# Prometheus configuration for TurboLLM monitoring
+
+global:
+  scrape_interval: 15s          # Как часто собирать метрики
+  evaluation_interval: 15s      # Как часто проверять правила (алерты)
+  # Время, в течение которого образцы считаются актуальными
+  scrape_timeout: 10s
+
+# Alertmanager (если используете) – пока отключён
+# alerting:
+#   alertmanagers:
+#   - static_configs:
+#     - targets: []
+
+# Правила для генерации алертов (пример)
+# rule_files:
+#   - "alerts.yml"
+
+scrape_configs:
+  # Сбор метрик с самого Prometheus (для самоконтроля)
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Основной сбор метрик с TurboLLM инференс-сервера
+  - job_name: "turbollm"
+    static_configs:
+      - targets: ["inference:8000"]   # имя сервиса в docker-compose
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    # Можно добавить метки для фильтрации
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "turbo-llm"
+
+  # Опционально: сбор метрик с хостовой системы (Node Exporter)
+  # Для этого нужно запустить node_exporter отдельно.
+  # - job_name: "node"
+  #   static_configs:
+  #     - targets: ["node-exporter:9100"]
+  #   scrape_interval: 15s
+
+  # Опционально: сбор метрик с GPU (nvidia-dcgm-exporter)
+  # - job_name: "nvidia"
+  #   static_configs:
+  #     - targets: ["dcgm-exporter:9400"]
+  #   scrape_interval: 15s
+
+# Настройки хранения (опционально – можно задать через командную строку)
+# storage:
+#   tsdb:
+#     retention_time: 30d
