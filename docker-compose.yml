@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # Основной движок инференса (open-source ядро)
+  inference:
+    build: .
+    image: turbollm:latest
+    container_name: turbollm-inference
+    restart: unless-stopped
+    ports:
+      - "8000:8000"   # API
+    environment:
+      - MODEL_PATH=/app/model
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - CUDA_VISIBLE_DEVICES=0   # при необходимости указать GPU
+    volumes:
+      - ./models:/app/model      # монтируем папку с моделями
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - turbollm-net
+
+  # Прометей для сбора метрик
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: turbollm-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - turbollm-net
+    profiles:
+      - monitoring
+
+  # Графана для дашбордов
+  grafana:
+    image: grafana/grafana:latest
+    container_name: turbollm-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - turbollm-net
+    profiles:
+      - monitoring
+
+  # Проприетарный балансировщик (закрытый модуль)
+  load-balancer:
+    image: turbollm/load-balancer:latest   # пример, реальный образ будет приватным
+    container_name: turbollm-balancer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # внешний шлюз
+    environment:
+      - UPSTREAM_URL=http://inference:8000
+      - REDIS_URL=redis://cache:6379
+    depends_on:
+      - inference
+      - cache
+    networks:
+      - turbollm-net
+    profiles:
+      - enterprise
+
+  # Проприетарный кэш промптов (Redis)
+  cache:
+    image: redis:7-alpine
+    container_name: turbollm-cache
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - cache_data:/data
+    networks:
+      - turbollm-net
+    profiles:
+      - enterprise
+
+  # Проприетарный дашборд администрирования
+  dashboard:
+    image: turbollm/dashboard:latest
+    container_name: turbollm-dashboard
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      - API_URL=http://inference:8000
+      - BALANCER_URL=http://load-balancer:8080
+    depends_on:
+      - inference
+      - load-balancer
+    networks:
+      - turbollm-net
+    profiles:
+      - enterprise
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  cache_data:
+
+networks:
+  turbollm-net:
+    driver: bridge
