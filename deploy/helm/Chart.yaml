@@ -1,0 +1,43 @@
+apiVersion: v2
+name: turbollm
+description: TurboLLM – High-Performance Inference Engine for Massive Contexts
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/karamik/TurboLLM
+sources:
+  - https://github.com/karamik/TurboLLM
+maintainers:
+  - name: TurboLLM Team
+    email: maintainers@turbollm.ai
+keywords:
+  - llm
+  - inference
+  - vllm
+  - ai
+  - fp8
+  - gpu
+  - kubernetes
+dependencies:
+  - name: redis
+    version: "17.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: enterprise.cache.enabled
+  - name: prometheus
+    version: "25.x.x"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: monitoring.prometheus.enabled
+  - name: grafana
+    version: "7.x.x"
+    repository: https://grafana.github.io/helm-charts
+    condition: monitoring.grafana.enabled
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/operator: "false"
+  artifacthub.io/images: |
+    - name: inference
+      image: turbollm/inference:latest
+    - name: load-balancer
+      image: turbollm/load-balancer:latest
+    - name: dashboard
+      image: turbollm/dashboard:latest
