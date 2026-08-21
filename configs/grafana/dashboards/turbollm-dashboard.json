@@ -1,0 +1,137 @@
+{
+  "title": "TurboLLM Monitoring",
+  "uid": "turbollm-dashboard",
+  "version": 1,
+  "timezone": "browser",
+  "editable": true,
+  "panels": [
+    {
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "type": "stat",
+      "title": "Total Requests",
+      "targets": [
+        {
+          "expr": "sum(turbollm_requests_total{status=\"success\"})",
+          "legendFormat": "Successful",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(turbollm_requests_total{status=\"error\"})",
+          "legendFormat": "Errors",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "type": "stat",
+      "title": "Total Tokens Generated",
+      "targets": [
+        {
+          "expr": "sum(turbollm_tokens_total)",
+          "legendFormat": "Tokens",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+      "id": 3,
+      "type": "gauge",
+      "title": "GPU Memory Usage",
+      "targets": [
+        {
+          "expr": "(turbollm_gpu_memory_used_bytes / turbollm_gpu_memory_total_bytes) * 100",
+          "legendFormat": "Usage %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 70},
+              {"color": "red", "value": 90}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "type": "stat",
+      "title": "Active Requests",
+      "targets": [
+        {
+          "expr": "turbollm_active_requests",
+          "legendFormat": "Active",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 8},
+      "id": 5,
+      "type": "graph",
+      "title": "Request Duration (latency)",
+      "targets": [
+        {
+          "expr": "rate(turbollm_request_duration_seconds_sum[5m]) / rate(turbollm_request_duration_seconds_count[5m])",
+          "legendFormat": "Avg latency",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 8},
+      "id": 6,
+      "type": "graph",
+      "title": "Request Rate (success/error)",
+      "targets": [
+        {
+          "expr": "rate(turbollm_requests_total{status=\"success\"}[5m])",
+          "legendFormat": "Success rate",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(turbollm_requests_total{status=\"error\"}[5m])",
+          "legendFormat": "Error rate",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "req/s"
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"}
+}
