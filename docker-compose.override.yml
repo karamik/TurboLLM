@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # Переопределяем сервис inference для разработки
+  inference:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev   # можно использовать отдельный Dockerfile для разработки
+    volumes:
+      - ./turbollm:/app/turbollm
+      - ./scripts:/app/scripts
+      - ./configs:/app/configs
+      - ./models:/app/model
+      - ./logs:/app/logs
+      - ./requirements.txt:/app/requirements.txt
+    environment:
+      - LOG_LEVEL=DEBUG
+      - PYTHONUNBUFFERED=1
+      - MODEL_PATH=/app/model
+      - QUANTIZATION=fp8
+      - KV_CACHE_DTYPE=fp8
+      - MAX_MODEL_LEN=32768
+    ports:
+      - "8000:8000"
+      - "5678:5678"   # для отладчика
+    command: >
+      python -m turbollm.serve 
+      --model /app/model 
+      --port 8000 
+      --host 0.0.0.0 
+      --quantization fp8 
+      --kv-cache-dtype fp8 
+      --max-model-len 32768
+
+  # Переопределяем прометей для разработки
+  prometheus:
+    volumes:
+      - ./prometheus.dev.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  # Переопределяем графану
+  grafana:
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+
+  # Для разработки enterprise модулей
+  load-balancer:
+    build:
+      context: ./enterprise/load-balancer
+    volumes:
+      - ./enterprise/load-balancer:/app
+    environment:
+      - DEBUG=true
+
+  cache:
+    ports:
+      - "6379:6379"   # доступ к Redis для отладки
+
+  dashboard:
+    build:
+      context: ./enterprise/dashboard
+    volumes:
+      - ./enterprise/dashboard:/app
+    environment:
+      - DEBUG=true
+
+  # ========== НОВЫЙ СЕРВИС: агент для связи TurboLLM с QRAP ==========
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent   # создайте этот файл (см. ниже)
+    container_name: turbollm-agent
+    volumes:
+      - ./agent_cell.py:/app/agent_cell.py   # монтируем код для быстрой разработки
+      - ./logs:/app/logs
+    environment:
+      - TURBOLLM_ENDPOINT=http://inference:8000/v1   # обращаемся к сервису inference внутри compose
+      - TURBOLLM_MODEL=meta-llama/Meta-Llama-3-70B   # или ваша модель
+      - TURBOLLM_API_KEY=EMPTY
+      # Адрес вашей рабочей ноды QRAP (замените на реальный IP/порт)
+      - CLUSTER_ENDPOINT=http://<qrap-ip>:<port>/api/v1/block
+      - CLUSTER_API_KEY=   # если требуется
+      - CELL_ID=main_cell_01
+      - N_AGENTS=10
+      - AGENT_HOST=0.0.0.0
+      - AGENT_PORT=8080
+      - LOG_LEVEL=INFO
+    ports:
+      - "8080:8080"   # внешний доступ к агенту
+    depends_on:
+      - inference
+    restart: unless-stopped
