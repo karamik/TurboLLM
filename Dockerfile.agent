@@ -1,0 +1,12 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка зависимостей
+RUN pip install --no-cache-dir aiohttp pydantic
+
+# Копируем скрипт агента
+COPY agent_cell.py .
+
+# Запуск
+CMD ["python", "agent_cell.py"]
