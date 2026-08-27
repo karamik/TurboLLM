@@ -1,0 +1,63 @@
+# alerts.yml
+groups:
+  - name: turbollm_alerts
+    rules:
+      # KV-cache usage > 90%
+      - alert: KVCacheHigh
+        expr: vllm:gpu_cache_usage_pct > 90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KV-cache usage is high ({{ $value }}%) on {{ $labels.instance }}"
+          description: "Cache usage exceeded 90% for more than 2 minutes. Consider reducing max_model_len or adding more GPUs."
+
+      # Request queue growing
+      - alert: RequestQueueGrowing
+        expr: vllm:num_requests_waiting > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Request queue is building up ({{ $value }} requests waiting)"
+          description: "More than 5 requests are waiting. Increase max_num_seqs or check GPU capacity."
+
+      # High TTFT (p95 > 10s)
+      - alert: HighTTFT
+        expr: histogram_quantile(0.95, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le)) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High TTFT (p95 > 10s)"
+          description: "Time to first token is too high. Check chunked prefill or input lengths."
+
+      # G-Space anomaly detected
+      - alert: GSpaceAnomaly
+        expr: g_inspector_anomaly == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "G-Space anomaly detected"
+          description: "ML classifier flagged an anomaly in hidden activations. Possible jailbreak or manipulation attempt."
+
+      # Agent supervisor status: many BLOCKED
+      - alert: ManyBlockedRequests
+        expr: sum(rate(agent_supervisor_status{status="BLOCKED"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of blocked requests by supervisor"
+          description: "More than 0.1 blocked requests per second. Check for systematic attacks."
+
+      # Agent confidence low
+      - alert: LowConfidence
+        expr: avg(agent_confidence_score) < 0.6
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Average confidence score dropped below 0.6"
+          description: "Model is consistently uncertain. Consider adjusting confidence thresholds or checking data quality."
