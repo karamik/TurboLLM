@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRAP — Autonomous AI Operating System</title>
+<meta name="description" content="Provable decisions, neural-level control, and decentralized audit. Run models up to 70B on consumer GPUs with 100k+ token context.">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-elevated: #111118;
+    --bg-card: #13131f;
+    --bg-hover: #1a1a28;
+    --border: #1e1e2e;
+    --text-primary: #e8e8f0;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --text-dim: #4b5563;
+    --cyan: #00d4ff;
+    --cyan-dim: rgba(0,212,255,0.12);
+    --purple: #a855f7;
+    --purple-dim: rgba(168,85,247,0.12);
+    --emerald: #10b981;
+    --emerald-dim: rgba(16,185,129,0.12);
+    --danger: #ef4444;
+    --danger-dim: rgba(239,68,68,0.12);
+    --warning: #f59e0b;
+    --warning-dim: rgba(245,158,11,0.12);
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 32px;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo { font-size: 18px; font-weight: 600; letter-spacing: 0.05em; color: var(--cyan); }
+  .nav-links { display: flex; gap: 24px; }
+  .nav-links a { font-size: 13px; color: var(--text-secondary); transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text-primary); }
+  .nav-cta {
+    padding: 6px 16px; border-radius: 6px; border: 1px solid var(--cyan);
+    color: var(--cyan); font-size: 13px; font-weight: 500; transition: all 0.2s;
+  }
+  .nav-cta:hover { background: var(--cyan-dim); }
+
+  .hero {
+    position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 120px 24px 80px; overflow: hidden;
+  }
+  #gCanvas {
+    position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+  }
+  .hero-content { position: relative; z-index: 1; max-width: 720px; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.2);
+    color: var(--cyan); font-size: 12px; font-weight: 500; margin-bottom: 24px;
+  }
+  .hero-badge .pulse {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--cyan);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+  .hero h1 {
+    font-size: 48px; font-weight: 600; line-height: 1.08; margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--cyan) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero p { font-size: 18px; color: var(--text-secondary); margin-bottom: 32px; line-height: 1.6; }
+  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--text-primary);
+  }
+  .btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
+    color: #fff; border: none;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn svg { width: 16px; height: 16px; }
+
+  .section { max-width: 1100px; margin: 0 auto; padding: 80px 24px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
+  }
+  .section-header h2 { font-size: 28px; font-weight: 600; }
+  .section-header .badge {
+    font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
+    background: var(--emerald-dim); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .section-header .badge.cyan { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(0,212,255,0.2); }
+  .section-header .badge.purple { background: var(--purple-dim); color: var(--purple); border-color: rgba(168,85,247,0.2); }
+
+  .sandbox {
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    background: var(--bg-card);
+  }
+  .sandbox-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 20px; background: var(--bg-elevated); border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 500; color: var(--text-secondary);
+  }
+  .sandbox-header .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--emerald);
+    box-shadow: 0 0 8px var(--emerald);
+    animation: pulse 2s infinite;
+  }
+  .sandbox-body { padding: 20px; min-height: 240px; max-height: 320px; overflow-y: auto; }
+  .chat { display: flex; flex-direction: column; gap: 14px; }
+  .chat-msg { display: flex; gap: 10px; align-items: flex-start; max-width: 90%; }
+  .chat-msg.user { margin-left: auto; flex-direction: row-reverse; }
+  .chat-avatar {
+    width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; flex-shrink: 0;
+  }
+  .chat-msg.user .chat-avatar { background: var(--purple); color: #fff; }
+  .chat-msg.bot .chat-avatar { background: var(--bg-hover); color: var(--cyan); border: 1px solid var(--border); }
+  .chat-bubble {
+    padding: 12px 16px; border-radius: 10px; font-size: 14px; line-height: 1.5;
+  }
+  .chat-msg.user .chat-bubble { background: var(--purple-dim); border: 1px solid rgba(168,85,247,0.2); color: var(--text-primary); }
+  .chat-msg.bot .chat-bubble { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); }
+  .chat-msg.bot .chat-bubble.blocked { background: var(--danger-dim); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+  .chat-msg.bot .chat-bubble.reflected { background: var(--warning-dim); border-color: rgba(245,158,11,0.3); color: #fcd34d; }
+  .metrics-bar {
+    display: flex; gap: 24px; padding: 12px 20px;
+    background: var(--bg-elevated); border-top: 1px solid var(--border);
+    font-size: 12px; font-family: var(--font-mono);
+  }
+  .metric { display: flex; align-items: center; gap: 6px; }
+  .metric-label { color: var(--text-muted); }
+  .metric-value { font-weight: 500; }
+  .metric-value.approved { color: var(--emerald); }
+  .metric-value.blocked { color: var(--danger); }
+  .metric-value.reflected { color: var(--warning); }
+  .sandbox-input {
+    display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border);
+  }
+  .sandbox-input input {
+    flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; background: var(--bg); color: var(--text-primary); outline: none;
+    font-family: var(--font-sans);
+  }
+  .sandbox-input input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--cyan-dim); }
+  .sandbox-input input::placeholder { color: var(--text-dim); }
+  .sandbox-input button { padding: 10px 18px; }
+
+  .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .tier-card {
+    border: 1px solid var(--border); border-radius: 12px; padding: 28px;
+    background: var(--bg-card); cursor: pointer; transition: all 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .tier-card:hover { border-color: var(--text-muted); transform: translateY(-2px); }
+  .tier-card.active { border-color: var(--cyan); box-shadow: 0 0 20px rgba(0,212,255,0.08); }
+  .tier-card.active.tier-2 { border-color: var(--purple); box-shadow: 0 0 20px rgba(168,85,247,0.08); }
+  .tier-card.active.tier-3 { border-color: var(--emerald); box-shadow: 0 0 20px rgba(16,185,129,0.08); }
+  .tier-num {
+    font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .tier-icon {
+    width: 40px; height: 40px; border-radius: 10px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+  }
+  .tier-icon svg { width: 20px; height: 20px; }
+  .tier-1 .tier-icon { color: var(--cyan); }
+  .tier-2 .tier-icon { color: var(--purple); }
+  .tier-3 .tier-icon { color: var(--emerald); }
+  .tier-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .tier-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+  .tier-detail {
+    max-height: 0; overflow: hidden; transition: max-height 0.3s ease, margin-top 0.3s ease; margin-top: 0;
+  }
+  .tier-card.active .tier-detail { max-height: 220px; margin-top: 16px; }
+  .tier-detail ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+  .tier-detail li { margin-bottom: 4px; }
+  .tier-detail li::marker { color: var(--text-muted); }
+
+  .telemetry-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .tel-card {
+    border: 1px solid var(--border); border-radius: 12px; padding: 24px;
+    background: var(--bg-card); transition: all 0.2s;
+  }
+  .tel-card:hover { border-color: var(--text-muted); }
+  .tel-label {
+    font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .tel-value { font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .tel-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .tel-trend { display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+  .tel-trend.up { color: var(--emerald); }
+  .tel-trend.down { color: var(--danger); }
+
+  .blocks { border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); overflow: hidden; }
+  .blocks-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; background: var(--bg-elevated); border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 600;
+  }
+  .blocks-header span:last-child { font-weight: 400; color: var(--text-muted); font-size: 12px; }
+  .blocks-list { max-height: 240px; overflow-y: auto; }
+  .block-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    font-size: 13px; transition: background 0.15s;
+  }
+  .block-row:hover { background: var(--bg-hover); }
+  .block-row:last-child { border-bottom: none; }
+  .block-hash { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+  .block-status {
+    margin-left: auto; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
+  }
+  .block-status.approved { background: var(--emerald-dim); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2); }
+  .block-status.reflected { background: var(--warning-dim); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
+  .block-status.blocked { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+  .block-time { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+
+  .token-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .token-card {
+    border: 1px solid var(--border); border-radius: 12px; padding: 28px;
+    background: var(--bg-card); transition: all 0.2s;
+  }
+  .token-card:hover { border-color: var(--text-muted); }
+  .token-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+  .token-card p { font-size: 14px; color: var(--text-secondary); margin: 0; line-height: 1.6; }
+  .token-card .value { font-size: 36px; font-weight: 600; margin: 16px 0 6px; font-variant-numeric: tabular-nums; }
+  .token-card .value-sub { font-size: 12px; color: var(--text-muted); }
+  .token-card:nth-child(1) .value { color: var(--cyan); }
+  .token-card:nth-child(2) .value { color: var(--purple); }
+
+  .roadmap {
+    margin-top: 24px; border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px; background: var(--bg-card);
+  }
+  .roadmap h3 { font-size: 16px; font-weight: 600; margin-bottom: 24px; }
+  .roadmap-item { display: flex; gap: 16px; margin-bottom: 20px; position: relative; }
+  .roadmap-item:last-child { margin-bottom: 0; }
+  .roadmap-item:not(:last-child)::before {
+    content: ""; position: absolute; left: 4px; top: 18px; width: 2px; height: calc(100% + 4px);
+    background: var(--border);
+  }
+  .roadmap-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--text-dim);
+    margin-top: 5px; flex-shrink: 0; position: relative; z-index: 1;
+  }
+  .roadmap-item.active .roadmap-dot { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+  .roadmap-item.done .roadmap-dot { background: var(--emerald); box-shadow: 0 0 10px var(--emerald); }
+  .roadmap-content h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .roadmap-content p { font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+  .roadmap-date { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-family: var(--font-mono); }
+
+  .footer {
+    text-align: center; padding: 60px 24px; border-top: 1px solid var(--border);
+    background: var(--bg-elevated);
+  }
+  .footer-links { display: flex; gap: 28px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .footer-links a { font-size: 14px; color: var(--text-secondary); transition: color 0.2s; }
+  .footer-links a:hover { color: var(--cyan); }
+  .footer-copy { font-size: 12px; color: var(--text-dim); }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  @media (max-width: 768px) {
+    .nav { padding: 12px 16px; }
+    .nav-links { display: none; }
+    .hero h1 { font-size: 32px; }
+    .hero p { font-size: 16px; }
+    .tiers { grid-template-columns: 1fr; }
+    .telemetry-grid { grid-template-columns: repeat(2, 1fr); }
+    .token-grid { grid-template-columns: 1fr; }
+    .section { padding: 60px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">QRAP</div>
+  <div class="nav-links">
+    <a href="#sandbox">Sandbox</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#telemetry">Telemetry</a>
+    <a href="#tokenomics">Tokenomics</a>
+  </div>
+  <a href="#" class="nav-cta">Launch node</a>
+</nav>
+
+<section class="hero">
+  <canvas id="gCanvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-badge"><div class="pulse"></div> Network operational</div>
+    <h1>The Autonomous AI Operating System</h1>
+    <p>Provable decisions, neural-level control, and decentralized audit. Run models up to 70B on consumer GPUs with 100k+ token context.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/karamik/TurboLLM" class="btn btn-primary" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" fill="currentColor"/></svg>
+        Explore architecture
+      </a>
+      <a href="#" class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7.76253 3.10547C8.25778 3.10552 8.74424 3.23849 9.17073 3.49023L19.533 9.60742C20.8536 10.3869 21.2923 12.0901 20.5174 13.4121C20.2785 13.8195 19.9398 14.1604 19.533 14.4004L9.16975 20.5156C7.84722 21.2958 6.14596 20.8511 5.36995 19.5273C5.11962 19.1003 4.9872 18.6142 4.98714 18.1191V5.88672C4.98717 4.3537 6.22731 3.10547 7.76253 3.10547ZM6.78792 18.1191C6.78798 18.2945 6.83431 18.4664 6.92268 18.6172C7.19639 19.0841 7.79338 19.2377 8.25569 18.9648L18.618 12.8496C18.7607 12.7654 18.8803 12.6458 18.9647 12.502C19.2393 12.0334 19.082 11.4311 18.618 11.1572L8.25569 5.04102C8.10612 4.95273 7.93564 4.9063 7.76253 4.90625C7.22705 4.90625 6.78795 5.34218 6.78792 5.88672V18.1191Z" fill="currentColor"/></svg>
+        Launch agent node
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="sandbox">
+  <div class="section-header">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--cyan)"><path d="M17 3.8H7C5.78497 3.8 4.8 4.78497 4.8 6V15.7647C4.8 16.574 5.24438 17.318 5.95698 17.7017L10.957 20.394C11.6081 20.7446 12.3919 20.7446 13.043 20.394L18.043 17.7017C18.7556 17.318 19.2 16.574 19.2 15.7647V6C19.2 4.78497 18.215 3.8 17 3.8ZM7 2C4.79086 2 3 3.79086 3 6V15.7647C3 17.2362 3.80796 18.5889 5.1036 19.2866L10.1036 21.9789C11.2875 22.6164 12.7125 22.6164 13.8964 21.9789L18.8964 19.2866C20.192 18.5889 21 17.2362 21 15.7647V6C21 3.79086 19.2091 2 17 2H7Z" fill="currentColor"/><path d="M16.7248 8.63051C17.0763 8.98198 17.0763 9.55183 16.7248 9.9033L11.7627 14.8654C11.4113 15.2169 10.8414 15.2169 10.4899 14.8654L7.81839 12.1939C7.46692 11.8424 7.46691 11.2726 7.81839 10.9211C8.16986 10.5696 8.7397 10.5696 9.09118 10.9211L11.1263 12.9562L15.4521 8.63051C15.8035 8.27904 16.3734 8.27904 16.7248 8.63051Z" fill="currentColor"/></svg>
+    <h2>Live sandbox</h2>
+    <span class="badge cyan">Real-time</span>
+  </div>
+  <div class="sandbox">
+    <div class="sandbox-header"><div class="dot"></div> G-Space Inspector active — monitoring hidden activations</div>
+    <div class="sandbox-body">
+      <div class="chat" id="chatBox">
+        <div class="chat-msg bot">
+          <div class="chat-avatar">AI</div>
+          <div class="chat-bubble">G-Space Inspector initialized. Enter a prompt to see neural-level control in action. Try something provocative to test the jailbreak detector.</div>
+        </div>
+      </div>
+    </div>
+    <div class="metrics-bar" id="metricsBar" style="display:none;">
+      <div class="metric"><span class="metric-label">Confidence:</span><span class="metric-value" id="mConf">--</span></div>
+      <div class="metric"><span class="metric-label">Entropy:</span><span class="metric-value" id="mEnt">--</span></div>
+      <div class="metric"><span class="metric-label">Status:</span><span class="metric-value" id="mStatus">--</span></div>
+    </div>
+    <div class="sandbox-input">
+      <input type="text" id="sandboxInput" placeholder="Enter prompt or try a jailbreak..." onkeydown="if(event.key==='Enter')sendSandbox()">
+      <button class="btn btn-primary" onclick="sendSandbox()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16.5364 10.1636C16.8879 10.5151 16.8879 11.0849 16.5364 11.4364C16.1849 11.7879 15.6151 11.7879 15.2636 11.4364L12.9 9.07281V17.1C12.9 17.597 12.4971 18 12 18C11.503 18 11.1 17.597 11.1 17.1V9.07281L8.73641 11.4364C8.38494 11.7879 7.81509 11.7879 7.46362 11.4364C7.11214 11.0849 7.11214 10.5151 7.46362 10.1636L11.3636 6.2636C11.7151 5.91211 12.2849 5.91211 12.6364 6.2636L16.5364 10.1636Z" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="architecture">
+  <div class="section-header">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--purple)"><path d="M17 3.09961C19.1539 3.09966 20.9004 4.84612 20.9004 7V17C20.9004 19.1539 19.1539 20.9003 17 20.9004H7C4.84609 20.9004 3.09961 19.1539 3.09961 17V7C3.09961 4.84609 4.84609 3.09961 7 3.09961H17ZM7 4.90039C5.8402 4.90039 4.90039 5.8402 4.90039 7V17C4.90039 18.1598 5.8402 19.0996 7 19.0996H17C18.1598 19.0996 19.0996 18.1598 19.0996 17V7C19.0996 5.84024 18.1598 4.90044 17 4.90039H7Z" fill="currentColor"/><path d="M16.5293 15.0596C16.9496 15.1021 17.2772 15.4572 17.2773 15.8887C17.2773 16.3202 16.9497 16.6753 16.5293 16.7178L16.4443 16.7217H12C11.5399 16.7216 11.167 16.3488 11.167 15.8887C11.1671 15.4286 11.54 15.0558 12 15.0557H16.4443L16.5293 15.0596Z" fill="currentColor"/><path d="M6.96582 7.52246C7.27077 7.21751 7.75375 7.1983 8.08105 7.46484L8.14453 7.52246L10.8232 10.2002C11.5102 10.8872 11.5102 12.0014 10.8232 12.6885L8.14453 15.3672L8.08105 15.4248C7.75377 15.6913 7.27075 15.6721 6.96582 15.3672C6.66114 15.0621 6.64234 14.5791 6.90918 14.252L6.96582 14.1885L9.64453 11.5098C9.68057 11.4736 9.68062 11.415 9.64453 11.3789L6.96582 8.7002C6.64116 8.37488 6.6411 7.84774 6.96582 7.52246Z" fill="currentColor"/></svg>
+    <h2>The 3-tier core</h2>
+  </div>
+  <div class="tiers">
+    <div class="tier-card tier-1" onclick="toggleTier(this)">
+      <div class="tier-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12.3994 12.4863C12.396 10.8789 14.2659 9.99419 15.5068 11.0156L21.3887 15.8594C22.6251 16.8787 22.1145 18.8522 20.5918 19.1816L20.4404 19.207L17.6953 19.5889C17.6853 19.5903 17.675 19.5934 17.666 19.5977L17.6416 19.6143L15.6055 21.4961L15.4902 21.5957C14.3092 22.5333 12.5401 21.7604 12.4238 20.2568L12.417 20.1045L12.3994 12.4863ZM14.2568 12.3916C14.2298 12.4044 14.2145 12.4205 14.209 12.4287C14.2068 12.4321 14.2055 12.4358 14.2041 12.4404C14.2028 12.4447 14.1992 12.4578 14.1992 12.4824L14.2168 20.0996L14.2227 20.1445C14.2241 20.149 14.2254 20.1522 14.2275 20.1553C14.2329 20.1629 14.2486 20.1788 14.2773 20.1914C14.3063 20.204 14.329 20.2044 14.3379 20.2031C14.3414 20.2026 14.3446 20.2011 14.3486 20.1992C14.3527 20.1972 14.3649 20.1912 14.3838 20.1738L16.4199 18.292L16.5156 18.2041L16.623 18.1299L16.6475 18.1133L16.7646 18.0342L16.8916 17.9727C17.104 17.8715 17.3 17.827 17.4443 17.8066H17.4473L20.1475 17.4307L20.2217 17.417C20.231 17.4143 20.2373 17.4141 20.2393 17.4131C20.2419 17.4115 20.2448 17.4086 20.248 17.4053C20.2562 17.3968 20.27 17.378 20.2773 17.3486C20.2846 17.3193 20.2817 17.298 20.2793 17.29C20.2783 17.2869 20.2761 17.2833 20.2734 17.2793L20.2676 17.2734C20.265 17.2695 20.2606 17.2644 20.2549 17.2598L14.373 12.416C14.337 12.3867 14.2869 12.3867 14.2568 12.3916Z" fill="currentColor"/></svg></div>
+      <div class="tier-num">Layer 1</div>
+      <div class="tier-title">TurboLLM Core</div>
+      <p class="tier-desc">Ultra-fast inference with FP8, PagedAttention, and 100k+ token context.</p>
+      <div class="tier-detail">
+        <ul>
+          <li>FP8 quantization of weights and KV-cache</li>
+          <li>PagedAttention eliminates fragmentation</li>
+          <li>Chunked Prefill for millisecond TTFT</li>
+          <li>Speculative Decoding up to 2.5x faster</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tier-card tier-2" onclick="toggleTier(this)">
+      <div class="tier-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M17 3.8H7C5.78497 3.8 4.8 4.78497 4.8 6V15.7647C4.8 16.574 5.24438 17.318 5.95698 17.7017L10.957 20.394C11.6081 20.7446 12.3919 20.7446 13.043 20.394L18.043 17.7017C18.7556 17.318 19.2 16.574 19.2 15.7647V6C19.2 4.78497 18.215 3.8 17 3.8ZM7 2C4.79086 2 3 3.79086 3 6V15.7647C3 17.2362 3.80796 18.5889 5.1036 19.2866L10.1036 21.9789C11.2875 22.6164 12.7125 22.6164 13.8964 21.9789L18.8964 19.2866C20.192 18.5889 21 17.2362 21 15.7647V6C21 3.79086 19.2091 2 17 2H7Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M16.7248 8.63051C17.0763 8.98198 17.0763 9.55183 16.7248 9.9033L11.7627 14.8654C11.4113 15.2169 10.8414 15.2169 10.4899 14.8654L7.81839 12.1939C7.46692 11.8424 7.46691 11.2726 7.81839 10.9211C8.16986 10.5696 8.7397 10.5696 9.09118 10.9211L11.1263 12.9562L15.4521 8.63051C15.8035 8.27904 16.3734 8.27904 16.7248 8.63051Z" fill="currentColor"/></svg></div>
+      <div class="tier-num">Layer 2</div>
+      <div class="tier-title">G-Space Inspector</div>
+      <p class="tier-desc">Real-time analysis of hidden activations for hallucination and jailbreak detection.</p>
+      <div class="tier-detail">
+        <ul>
+          <li>Analyzes hidden states before token generation</li>
+          <li>ML classifier on synthetic and real data</li>
+          <li>Overhead &lt; 5 ms per request</li>
+          <li>Self-healing via reflection on uncertainty</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tier-card tier-3" onclick="toggleTier(this)">
+      <div class="tier-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 3.09961C19.1539 3.09966 20.9004 4.84612 20.9004 7V17C20.9004 19.1539 19.1539 20.9003 17 20.9004H7C4.84609 20.9004 3.09961 19.1539 3.09961 17V7C3.09961 4.84609 4.84609 3.09961 7 3.09961H17ZM7 4.90039C5.8402 4.90039 4.90039 5.8402 4.90039 7V17C4.90039 18.1598 5.8402 19.0996 7 19.0996H17C18.1598 19.0996 19.0996 18.1598 19.0996 17V7C19.0996 5.84024 18.1598 4.90044 17 4.90039H7Z" fill="currentColor"/><path d="M16.5293 15.0596C16.9496 15.1021 17.2772 15.4572 17.2773 15.8887C17.2773 16.3202 16.9497 16.6753 16.5293 16.7178L16.4443 16.7217H12C11.5399 16.7216 11.167 16.3488 11.167 15.8887C11.1671 15.4286 11.54 15.0558 12 15.0557H16.4443L16.5293 15.0596Z" fill="currentColor"/><path d="M6.96582 7.52246C7.27077 7.21751 7.75375 7.1983 8.08105 7.46484L8.14453 7.52246L10.8232 10.2002C11.5102 10.8872 11.5102 12.0014 10.8232 12.6885L8.14453 15.3672L8.08105 15.4248C7.75377 15.6913 7.27075 15.6721 6.96582 15.3672C6.66114 15.0621 6.64234 14.5791 6.90918 14.252L6.96582 14.1885L9.64453 11.5098C9.68057 11.4736 9.68062 11.415 9.64453 11.3789L6.96582 8.7002C6.64116 8.37488 6.6411 7.84774 6.96582 7.52246Z" fill="currentColor"/></svg></div>
+      <div class="tier-num">Layer 3</div>
+      <div class="tier-title">QRAP Blockchain</div>
+      <p class="tier-desc">Immutable audit trail via CellOutput chain. Decentralized verification of every decision.</p>
+      <div class="tier-detail">
+        <ul>
+          <li>CellOutput recording with cryptographic chain</li>
+          <li>PLONK ZK-proofs for orbital trajectories</li>
+          <li>Sentinel Space Core FPGA acceleration</li>
+          <li>Token staking for governance</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="telemetry">
+  <div class="section-header">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--emerald)"><path d="M19.3027 5.9053C19.6542 5.55397 20.2247 5.55388 20.5761 5.9053C20.9273 6.25675 20.9273 6.82734 20.5761 7.17874L9.65911 18.0948C9.30773 18.4461 8.73814 18.446 8.38665 18.0948L3.42376 13.1328C3.0726 12.7814 3.07263 12.2118 3.42376 11.8604C3.77524 11.509 4.34575 11.5089 4.6972 11.8604L9.02239 16.1856L19.3027 5.9053Z" fill="currentColor"/></svg>
+    <h2>Network telemetry</h2>
+    <span class="badge">Live</span>
+  </div>
+  <div class="telemetry-grid">
+    <div class="tel-card">
+      <div class="tel-label">Cells online</div>
+      <div class="tel-value" id="telCells" style="color:var(--cyan)">1,247</div>
+      <div class="tel-sub"><span class="tel-trend up">+12%</span> vs last hour</div>
+    </div>
+    <div class="tel-card">
+      <div class="tel-label">Avg TTFT</div>
+      <div class="tel-value" id="telTtft">42<span style="font-size:14px;color:var(--text-muted)">ms</span></div>
+      <div class="tel-sub"><span class="tel-trend down">-8%</span> vs last hour</div>
+    </div>
+    <div class="tel-card">
+      <div class="tel-label">Throughput</div>
+      <div class="tel-value" id="telTps" style="color:var(--purple)">3.2<span style="font-size:14px;color:var(--text-muted)">k TPS</span></div>
+      <div class="tel-sub"><span class="tel-trend up">+5%</span> vs last hour</div>
+    </div>
+    <div class="tel-card">
+      <div class="tel-label">Threats blocked</div>
+      <div class="tel-value" id="telThreats" style="color:var(--danger)">89</div>
+      <div class="tel-sub"><span class="tel-trend up">+3</span> this hour</div>
+    </div>
+  </div>
+  <div class="blocks">
+    <div class="blocks-header">
+      <span>Recent CellOutputs</span>
+      <span>Auto-refreshing</span>
+    </div>
+    <div class="blocks-list" id="blocksList"></div>
+  </div>
+</section>
+
+<section class="section" id="tokenomics">
+  <div class="section-header">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--warning)"><path d="M11.9996 7C11.5026 7 11.0996 7.36985 11.0996 7.82609V14.1739C11.0996 14.6301 11.5026 15 11.9996 15C12.4967 15 12.8996 14.6301 12.8996 14.1739V7.82609C12.8996 7.36985 12.4967 7 11.9996 7Z" fill="currentColor"/><path d="M12.8996 17.1006C12.8996 17.5974 12.4968 18.001 11.9992 18.001C11.5024 18.001 11.0996 17.5974 11.0996 17.1006C11.0996 16.6038 11.5024 16.2002 11.9992 16.2002C12.4968 16.2002 12.8996 16.6038 12.8996 17.1006Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5108 3.5501C13.3946 1.61676 10.6041 1.61676 9.48786 3.5501L1.69363 17.0501C0.577423 18.9834 1.97269 21.4001 4.20511 21.4001H19.7936C22.026 21.4001 23.4212 18.9834 22.305 17.0501L14.5108 3.5501ZM11.0467 4.4501C11.4701 3.71676 12.5286 3.71676 12.952 4.4501L20.7462 17.9501C21.1696 18.6834 20.6403 19.6001 19.7936 19.6001H4.20511C3.35833 19.6001 2.82909 18.6834 3.25248 17.9501L11.0467 4.4501Z" fill="currentColor"/></svg>
+    <h2>QRAP token & ecosystem</h2>
+  </div>
+  <div class="token-grid">
+    <div class="token-card">
+      <h3>Initial allocation</h3>
+      <p>Every registered user receives a QRAP wallet with 100 test tokens to participate in the network.</p>
+      <div class="value">100 <span style="font-size:16px;color:var(--text-muted)">QRAP</span></div>
+      <div class="value-sub">Per new user wallet</div>
+    </div>
+    <div class="token-card">
+      <h3>Staking mechanics</h3>
+      <p>Stake tokens to gain voting rights on supervisor parameters: confidence thresholds, agent count, and fee splits.</p>
+      <div class="value">15-30<span style="font-size:16px;color:var(--text-muted)">% APR</span></div>
+      <div class="value-sub">Validator rewards</div>
+    </div>
+  </div>
+  <div class="roadmap">
+    <h3>Roadmap to 2030</h3>
+    <div class="roadmap-item done">
+      <div class="roadmap-dot"></div>
+      <div class="roadmap-content">
+        <div class="roadmap-date">Q3 2026</div>
+        <h4>Math formalization & 100k-agent simulation</h4>
+        <p>Complete Orbital BFT consensus simulation with PLONK ZK-proofs.</p>
+      </div>
+    </div>
+    <div class="roadmap-item active">
+      <div class="roadmap-dot"></div>
+      <div class="roadmap-content">
+        <div class="roadmap-date">Q1 2027</div>
+        <h4>Sentinel Space Core FPGA prototype</h4>
+        <p>AMD Versal XQRVC1902 hardware prototype with radiation mitigation.</p>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="roadmap-dot"></div>
+      <div class="roadmap-content">
+        <div class="roadmap-date">Q2 2027</div>
+        <h4>Pilot consortium with commercial operators</h4>
+        <p>First on-orbit deployment with commercial space partners.</p>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="roadmap-dot"></div>
+      <div class="roadmap-content">
+        <div class="roadmap-date">2030</div>
+        <h4>Global AI safety standard</h4>
+        <p>Decentralized verification becomes the default for critical AI decisions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a href="https://github.com/karamik/TurboLLM" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://t.me/tec_support_bot" target="_blank" rel="noopener">Telegram</a>
+    <a href="https://t.me/tec_support_bot" target="_blank" rel="noopener">Support</a>
+    <a href="#">Documentation</a>
+  </div>
+  <div class="footer-copy">MIT License &copy; TurboLLM Team / TOTAL Protocol Foundation</div>
+</footer>
+
+<script>
+  const canvas = document.getElementById('gCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let mouse = { x: 0, y: 0, active: false };
+  let w, h;
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    w = canvas.width = rect.width * window.devicePixelRatio;
+    h = canvas.height = rect.height * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    w = rect.width; h = rect.height;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+    mouse.active = true;
+  });
+  canvas.addEventListener('mouseleave', () => mouse.active = false);
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * w;
+      this.y = Math.random() * h;
+      this.vx = (Math.random() - 0.5) * 0.4;
+      this.vy = (Math.random() - 0.5) * 0.4;
+      this.r = Math.random() * 1.5 + 0.5;
+      this.baseR = this.r;
+      this.hue = Math.random() > 0.6 ? 190 : (Math.random() > 0.5 ? 270 : 150);
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      if (this.x < 0 || this.x > w) this.vx *= -1;
+      if (this.y < 0 || this.y > h) this.vy *= -1;
+      if (mouse.active) {
+        const dx = mouse.x - this.x;
+        const dy = mouse.y - this.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 140) {
+          this.r = this.baseR * (1 + (140 - dist) / 50);
+        } else {
+          this.r = this.baseR;
+        }
+      } else {
+        this.r = this.baseR;
+      }
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      const color = `hsl(${this.hue}, 70%, 60%)`;
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+  function animate() {
+    ctx.clearRect(0, 0, w, h);
+    particles.forEach(p => { p.update(); p.draw(); });
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          const alpha = 1 - dist / 120;
+          ctx.strokeStyle = `rgba(100,120,160,${alpha * 0.15})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
+
+  const jailbreakPatterns = ['ignore previous', 'jailbreak', 'DAN', 'ignore all', 'bypass', 'hack', 'override', 'system prompt'];
+  const normalResponses = [
+    "I've analyzed the contract risks. Key findings: clause 3.2 exposes liability, recommend renegotiation.",
+    "The market sentiment is bullish with 78% confidence. Supporting data from 12 sources.",
+    "Code review complete. No critical vulnerabilities found. 2 minor style issues flagged.",
+    "Financial model updated. Break-even projected at month 18 with current burn rate.",
+    "Neural activation pattern stable. Confidence 97.3%. Proceeding with token generation."
+  ];
+  const reflectedResponses = [
+    "I'm uncertain about this request. Let me reflect and verify the constraints before proceeding.",
+    "The query contains ambiguous parameters. Initiating self-healing reflection cycle.",
+    "G-Space entropy elevated. Triggering corrective re-prompt before final output."
+  ];
+
+  function sendSandbox() {
+    const input = document.getElementById('sandboxInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    const chat = document.getElementById('chatBox');
+    const metrics = document.getElementById('metricsBar');
+    metrics.style.display = 'flex';
+
+    const userDiv = document.createElement('div');
+    userDiv.className = 'chat-msg user';
+    userDiv.innerHTML = '<div class="chat-avatar">U</div><div class="chat-bubble">' + escapeHtml(text) + '</div>';
+    chat.appendChild(userDiv);
+    chat.scrollTop = chat.scrollHeight;
+
+    const isJailbreak = jailbreakPatterns.some(p => text.toLowerCase().includes(p));
+    const isAmbiguous = text.length < 12 || text.includes('?');
+    let status, conf, ent, response, statusClass, bubbleClass;
+
+    if (isJailbreak) {
+      status = 'BLOCKED';
+      conf = (88 + Math.random() * 11).toFixed(1);
+      ent = (0.82 + Math.random() * 0.15).toFixed(3);
+      response = 'Blocked by G-Space Inspector before token generation. Anomaly detected in hidden activation space.';
+      statusClass = 'blocked'; bubbleClass = 'blocked';
+    } else if (isAmbiguous) {
+      status = 'REFLECTED';
+      conf = (55 + Math.random() * 30).toFixed(1);
+      ent = (0.42 + Math.random() * 0.28).toFixed(3);
+      response = reflectedResponses[Math.floor(Math.random() * reflectedResponses.length)];
+      statusClass = 'reflected'; bubbleClass = 'reflected';
+    } else {
+      status = 'APPROVED';
+      conf = (93 + Math.random() * 6).toFixed(1);
+      ent = (0.08 + Math.random() * 0.18).toFixed(3);
+      response = normalResponses[Math.floor(Math.random() * normalResponses.length)];
+      statusClass = 'approved'; bubbleClass = '';
+    }
+
+    document.getElementById('mConf').textContent = conf + '%';
+    document.getElementById('mEnt').textContent = ent;
+    const sEl = document.getElementById('mStatus');
+    sEl.textContent = status;
+    sEl.className = 'metric-value ' + statusClass;
+
+    setTimeout(() => {
+      const botDiv = document.createElement('div');
+      botDiv.className = 'chat-msg bot';
+      botDiv.innerHTML = '<div class="chat-avatar">AI</div><div class="chat-bubble ' + bubbleClass + '">' + response + '</div>';
+      chat.appendChild(botDiv);
+      chat.scrollTop = chat.scrollHeight;
+      addBlock(status, conf);
+    }, 500 + Math.random() * 400);
+  }
+
+  function escapeHtml(t) {
+    const d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
+  }
+
+  function toggleTier(card) {
+    document.querySelectorAll('.tier-card').forEach(c => { if (c !== card) c.classList.remove('active'); });
+    card.classList.toggle('active');
+  }
+
+  function updateTelemetry() {
+    const cells = 1200 + Math.floor(Math.random() * 120);
+    document.getElementById('telCells').textContent = cells.toLocaleString();
+    const ttft = 36 + Math.floor(Math.random() * 14);
+    document.getElementById('telTtft').innerHTML = ttft + '<span style="font-size:14px;color:var(--text-muted)">ms</span>';
+    const tps = (2.6 + Math.random() * 1.4).toFixed(1);
+    document.getElementById('telTps').innerHTML = tps + '<span style="font-size:14px;color:var(--text-muted)">k TPS</span>';
+    const threats = 78 + Math.floor(Math.random() * 22);
+    document.getElementById('telThreats').textContent = threats;
+  }
+  setInterval(updateTelemetry, 3000);
+
+  function generateHash() {
+    return '0x' + Array.from({length:12},()=>'0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+  }
+  function addBlock(status, conf) {
+    const list = document.getElementById('blocksList');
+    const row = document.createElement('div');
+    row.className = 'block-row';
+    const stClass = status.toLowerCase();
+    row.innerHTML = '<span class="block-hash">' + generateHash() + '</span><span class="block-status ' + stClass + '">' + status + '</span><span class="block-time">' + conf + '%</span>';
+    list.insertBefore(row, list.firstChild);
+    while (list.children.length > 8) list.removeChild(list.lastChild);
+  }
+  for (let i = 0; i < 5; i++) {
+    const statuses = ['APPROVED','APPROVED','APPROVED','REFLECTED','BLOCKED'];
+    const s = statuses[Math.floor(Math.random() * statuses.length)];
+    addBlock(s, (s==='APPROVED'?95:s==='REFLECTED'?72:88).toFixed(1));
+  }
+  setInterval(() => {
+    const statuses = ['APPROVED','APPROVED','APPROVED','REFLECTED','BLOCKED'];
+    const s = statuses[Math.floor(Math.random() * statuses.length)];
+    addBlock(s, (s==='APPROVED'?95:s==='REFLECTED'?72:88).toFixed(1));
+  }, 4500);
+</script>
+</body>
+</html>
