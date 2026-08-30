@@ -1,0 +1,66 @@
+# prometheus.yml
+# Конфигурация Prometheus для сбора метрик с TurboLLM, G-Space Inspector и QRAP
+
+global:
+  scrape_interval: 15s      # Частота сбора метрик
+  evaluation_interval: 15s  # Частота оценки правил алертинга
+  scrape_timeout: 10s       # Таймаут на сбор
+
+# Файлы с правилами алертинга (отдельный файл alerts.yml)
+rule_files:
+  - "alerts.yml"
+
+# Список целей для сбора метрик
+scrape_configs:
+  # Сбор метрик с самого Prometheus (опционально)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # TurboLLM inference engine (vLLM)
+  - job_name: 'turbollm'
+    scrape_interval: 10s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['inference:8000']   # имя сервиса в docker-compose
+    # Если используете несколько экземпляров, добавьте их в targets
+    # - targets: ['inference1:8000', 'inference2:8000']
+
+  # Agent Supervisor (agent_cell.py) – основные метрики G-Space
+  - job_name: 'agent'
+    scrape_interval: 10s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['agent:8080']       # стандартный порт агента
+    # Если агент экспортирует метрики на отдельном порту (9090), можно использовать:
+    # - targets: ['agent:9090']
+
+  # QRAP node (если есть метрики)
+  - job_name: 'qrap'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['qrap-node:50051']  # предполагаемый порт метрик QRAP
+    # Если QRAP использует другой порт или путь, отредактируйте
+
+  # Дополнительно: мониторинг хоста (node_exporter) – опционально
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node_exporter:9100']
+
+  # Дополнительно: мониторинг Docker контейнеров (cadvisor) – опционально
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+
+# Настройки удалённой записи (если используется)
+# remote_write:
+#   - url: "http://remote-storage:9009/api/prom/push"
+
+# Настройки хранения (можно переопределить через флаги командной строки)
+# storage:
+#   tsdb:
+#     retention_time: 15d
+#     retention_size: 50GB
