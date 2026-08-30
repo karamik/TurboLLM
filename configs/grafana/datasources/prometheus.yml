@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Подключаем файл с правилами алертов
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  # Сбор метрик самого Prometheus (опционально)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Agent Supervisor (agent_cell.py) – метрики на порту 9090
+  - job_name: 'agent'
+    static_configs:
+      - targets: ['agent:9090']   # если в Docker, имя сервиса; иначе localhost
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+
+  # TurboLLM inference engine – метрики на порту 8000
+  - job_name: 'turbollm'
+    static_configs:
+      - targets: ['inference:8000']   # или localhost:8000
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+
+  # QRAP node (если есть метрики) – опционально
+  - job_name: 'qrap'
+    static_configs:
+      - targets: ['qrap-node:50051']
+    scrape_interval: 30s
