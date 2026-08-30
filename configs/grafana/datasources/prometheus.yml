@@ -1,0 +1,39 @@
+# prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Правила алертинга (подключаем из alerts.yml)
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  # Сбор метрик с самого Prometheus (опционально)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # TurboLLM inference engine (метрики vLLM и G-Space)
+  - job_name: 'turbollm'
+    static_configs:
+      - targets: ['inference:8000']   # имя сервиса в docker-compose
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Agent Supervisor (agent_cell.py) – экспортирует метрики на порту 9090
+  - job_name: 'agent'
+    static_configs:
+      - targets: ['agent:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # QRAP node (если доступны метрики)
+  - job_name: 'qrap'
+    static_configs:
+      - targets: ['qrap-node:50051']   # если QRAP выдает метрики
+    scrape_interval: 30s
+
+  # Дополнительно: можно добавить мониторинг самого хоста через node_exporter
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
