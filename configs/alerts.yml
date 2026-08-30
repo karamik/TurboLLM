@@ -1,0 +1,82 @@
+groups:
+  - name: gspace_alerts
+    rules:
+      # 1. Высокая спектральная энтропия (аномалия на уровне активаций)
+      - alert: HighSpectralEntropy
+        expr: agent_spectral_anomalies > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Spectral anomaly detected in G‑Space ({{ $value }} layers)"
+          description: "{{ $value }} layers show spectral entropy above threshold. Possible manipulation or jailbreak attempt."
+
+      # 2. Косинусный дрифт превышает порог
+      - alert: HighCosineDrift
+        expr: agent_cosine_drift > 0.35
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High cosine drift in G‑Space ({{ $value }})"
+          description: "Cosine drift exceeded 0.35, indicating model reasoning has deviated from baseline."
+
+      # 3. Низкая уверенность супервайзера
+      - alert: LowConfidence
+        expr: agent_confidence_score < 0.6
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low confidence ({{ $value }})"
+          description: "Average confidence dropped below 0.6. Check data quality or model performance."
+
+      # 4. Много заблокированных запросов
+      - alert: ManyBlockedRequests
+        expr: sum(rate(agent_requests_total{status="BLOCKED"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High rate of blocked requests"
+          description: "More than 0.1 blocked requests per second. Possible systematic attack."
+
+      # 5. Кэш заполнен >90%
+      - alert: KVCacheHigh
+        expr: vllm:gpu_cache_usage_pct > 90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KV‑cache usage >90%"
+          description: "Cache is nearly full. Consider reducing max_model_len or adding resources."
+
+      # 6. Очередь запросов растёт
+      - alert: RequestQueueGrowing
+        expr: vllm:num_requests_waiting > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Request queue building up ({{ $value }} waiting)"
+          description: "More than 5 requests waiting. Increase max_num_seqs or check capacity."
+
+      # 7. Высокая TTFT (задержка первого токена)
+      - alert: HighTTFT
+        expr: histogram_quantile(0.95, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le)) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High TTFT p95 ({{ $value }}s)"
+          description: "Time to first token is too high. Check chunked prefill or input lengths."
+
+      # 8. Высокий TPOT (задержка на токен)
+      - alert: HighTPOT
+        expr: histogram_quantile(0.95, sum(rate(vllm:time_per_output_token_seconds_bucket[5m])) by (le)) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High TPOT p95 ({{ $value }}s)"
+          description: "Time per output token is high. Check quantization or batch size."
