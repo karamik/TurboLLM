@@ -50,6 +50,8 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
+from hardware_attestation import get_hardware_attestation, HardwareAttestation
+
 logger = logging.getLogger("AgentSupervisorCell")
 
 # ========== ЗАГРУЗКА .env (если есть) ==========
@@ -795,6 +797,16 @@ async def handle_process(request: web.Request):
     balance = get_balance(session_id)
     if balance < MIN_BALANCE_TO_START:
         return web.json_response({"error": "Insufficient balance", "balance": balance, "min_required": MIN_BALANCE_TO_START, "topup_needed": True}, status=402)
+
+    # --- Автоматическая аппаратная аттестация ---
+    hw_attestation = get_hardware_attestation()
+    if hw_attestation.get("attestation_available") and not hw_attestation.get("attestation_ok"):
+        logger.error("Hardware attestation failed - blocking request")
+        return web.json_response({
+            "error": "Hardware attestation failed",
+            "attestation": hw_attestation
+        }, status=403)
+    # --- Конец аттестации ---
     try:
         data = await request.json()
         task = data.get("task")
@@ -813,7 +825,9 @@ async def handle_process(request: web.Request):
         cell_output = CellOutput(
             cell_id=CELL_ID, block_id=block_id, timestamp=datetime.now(timezone.utc).isoformat(),
             decision=supervisor_output.response if supervisor_output.status != "BLOCKED" else "BLOCKED_BY_SUPERVISOR",
-            manifest=manifest, poi_chain=[hashlib.sha256(f"step_{i}".encode()).hexdigest() for i in range(3)],
+            manifest=manifest,
+            poi_chain=[hashlib.sha256(f"step_{i}".encode()).hexdigest() for i in range(3)]
+                      + ([HardwareAttestation.hash_puf_for_proof(hw_attestation["puf_id"], salt=block_id)] if hw_attestation.get("puf_id") else []),
             payload={
                 "supervisor_status": supervisor_output.status,
                 "confidence": supervisor_output.confidence_score,
@@ -825,7 +839,9 @@ async def handle_process(request: web.Request):
                 "spectral_metrics": supervisor_output.metadata.get("spectral_metrics", {}),
                 "cosine_drift": supervisor_output.metadata.get("cosine_drift", 0.0),
                 "drift_from_anchor": supervisor_output.metadata.get("drift_from_anchor", 0.0),
-                "proof_of_inspection": supervisor_output.metadata.get("proof_of_inspection", "")
+                "proof_of_inspection": supervisor_output.metadata.get("proof_of_inspection", ""),
+                "hardware_attestation": hw_attestation,
+                "puf_hash": HardwareAttestation.hash_puf_for_proof(hw_attestation["puf_id"], salt=block_id) if hw_attestation.get("puf_id") else None
             }
         )
         cell_outputs_cache[block_id] = cell_output
