@@ -4,16 +4,25 @@ TurboLLM Inference Server
 Serves LLM requests via REST API with vLLM backend, streaming, and Prometheus metrics.
 """
 
-import os
 import argparse
 import logging
-from typing import Optional, Dict, Any
+import os
+from typing import Dict, Optional
 
+import torch
+import uvicorn
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import StreamingResponse
+
+# Prometheus client
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 from pydantic import BaseModel, Field
-import uvicorn
-import torch
 
 # vLLM imports
 from vllm.engine.arg_utils import AsyncEngineArgs
@@ -21,27 +30,33 @@ from vllm.engine.async_llm_engine import AsyncLLMEngine
 from vllm.sampling_params import SamplingParams
 from vllm.utils import random_uuid
 
-# Prometheus client
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from g_inspector.config import DEFAULT_LAYER_INDICES
 
 # ===================== NEW: G‑Space Inspector =====================
 from g_inspector.hook_manager import HiddenStateCollector
-from g_inspector.config import DEFAULT_LAYER_INDICES
+
 # ==================================================================
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger("turbollm")
 
 # -------------------------------------------------------------------
 # Prometheus metrics (monitoring)
 # -------------------------------------------------------------------
-REQUESTS_TOTAL = Counter("turbollm_requests_total", "Total requests", ["model", "status"])
+REQUESTS_TOTAL = Counter(
+    "turbollm_requests_total", "Total requests", ["model", "status"]
+)
 TOKENS_TOTAL = Counter("turbollm_tokens_total", "Tokens generated", ["model"])
-REQUEST_DURATION = Histogram("turbollm_request_duration_seconds", "Request duration", ["model"])
+REQUEST_DURATION = Histogram(
+    "turbollm_request_duration_seconds", "Request duration", ["model"]
+)
 GPU_MEMORY_USED = Gauge("turbollm_gpu_memory_used_bytes", "GPU memory used")
 GPU_MEMORY_TOTAL = Gauge("turbollm_gpu_memory_total_bytes", "GPU memory total")
 ACTIVE_REQUESTS = Gauge("turbollm_active_requests", "Active concurrent requests")
+
 
 # -------------------------------------------------------------------
 # Pydantic request/response models
@@ -53,10 +68,12 @@ class GenerateRequest(BaseModel):
     top_p: float = Field(0.95, ge=0.0, le=1.0)
     stream: bool = False
 
+
 class GenerateResponse(BaseModel):
     request_id: str
     text: str
     usage: Dict[str, int]
+
 
 # -------------------------------------------------------------------
 # FastAPI app and engine lifecycle
@@ -67,6 +84,7 @@ engine: Optional[AsyncLLMEngine] = None
 # ===================== NEW: G‑Space Collector =====================
 _hidden_collector: Optional[HiddenStateCollector] = None
 # ==================================================================
+
 
 def init_engine(model_path: str, **kwargs):
     """Initialize vLLM AsyncEngine with FP8 and long-context optimizations."""
@@ -97,6 +115,7 @@ def init_engine(model_path: str, **kwargs):
     _init_g_inspector()
     # ========================================================================
 
+
 def _init_g_inspector():
     """Initialize the HiddenStateCollector using the loaded model."""
     global _hidden_collector
@@ -108,11 +127,14 @@ def _init_g_inspector():
         # Access the underlying model (vLLM 0.6+)
         # Adjust path if needed – works for most vLLM versions.
         model = engine.engine.model_executor.driver_worker.model_runner.model
-        _hidden_collector = HiddenStateCollector(model, layer_indices=DEFAULT_LAYER_INDICES)
+        _hidden_collector = HiddenStateCollector(
+            model, layer_indices=DEFAULT_LAYER_INDICES
+        )
         logger.info("✅ G‑Space Inspector attached successfully.")
     except Exception as e:
         logger.error(f"❌ Failed to attach G‑Space Inspector: {e}")
         _hidden_collector = None
+
 
 @app.on_event("startup")
 async def startup():
@@ -137,6 +159,7 @@ async def startup():
             GPU_MEMORY_TOTAL.set(torch.cuda.get_device_properties(i).total_memory)
             GPU_MEMORY_USED.set(torch.cuda.memory_reserved(i))
 
+
 # -------------------------------------------------------------------
 # Health & Metrics endpoints
 # -------------------------------------------------------------------
@@ -144,10 +167,12 @@ async def startup():
 async def health():
     return {"status": "ok", "engine_ready": engine is not None}
 
+
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint."""
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 
 # ===================== NEW: Hidden States endpoint =====================
 @app.get("/hidden_states")
@@ -168,7 +193,10 @@ async def get_hidden_states():
     except Exception as e:
         logger.exception("Error fetching hidden states")
         raise HTTPException(status_code=500, detail=str(e))
+
+
 # ========================================================================
+
 
 # -------------------------------------------------------------------
 # Generation endpoint (non-streaming)
@@ -190,7 +218,9 @@ async def generate(request: GenerateRequest):
         )
 
         output = None
-        async for request_output in engine.generate(request.prompt, sampling_params, request_id):
+        async for request_output in engine.generate(
+            request.prompt, sampling_params, request_id
+        ):
             output = request_output
 
         if output is None:
@@ -223,6 +253,7 @@ async def generate(request: GenerateRequest):
         timer.observe()
         ACTIVE_REQUESTS.dec()
 
+
 # -------------------------------------------------------------------
 # Streaming endpoint (SSE for instant first-token response)
 # -------------------------------------------------------------------
@@ -244,7 +275,9 @@ async def generate_stream(request: GenerateRequest):
 
         try:
             sent_len = 0
-            async for request_output in engine.generate(request.prompt, sampling_params, request_id):
+            async for request_output in engine.generate(
+                request.prompt, sampling_params, request_id
+            ):
                 current_text = request_output.outputs[0].text
                 delta = current_text[sent_len:]
                 sent_len = len(current_text)
@@ -256,17 +289,28 @@ async def generate_stream(request: GenerateRequest):
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
+
 # -------------------------------------------------------------------
 # CLI entry point
 # -------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="TurboLLM Inference Server")
-    parser.add_argument("--model", type=str, default=os.environ.get("MODEL_PATH", "/app/model"))
+    parser.add_argument(
+        "--model", type=str, default=os.environ.get("MODEL_PATH", "/app/model")
+    )
     parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)))
     parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--quantization", type=str, default=os.environ.get("QUANTIZATION", ""))
-    parser.add_argument("--kv-cache-dtype", type=str, default=os.environ.get("KV_CACHE_DTYPE", "auto"))
-    parser.add_argument("--max-model-len", type=int, default=int(os.environ.get("MAX_MODEL_LEN", "32768")))
+    parser.add_argument(
+        "--quantization", type=str, default=os.environ.get("QUANTIZATION", "")
+    )
+    parser.add_argument(
+        "--kv-cache-dtype", type=str, default=os.environ.get("KV_CACHE_DTYPE", "auto")
+    )
+    parser.add_argument(
+        "--max-model-len",
+        type=int,
+        default=int(os.environ.get("MAX_MODEL_LEN", "32768")),
+    )
     args = parser.parse_args()
 
     os.environ["MODEL_PATH"] = args.model
@@ -275,6 +319,7 @@ def main():
     os.environ["MAX_MODEL_LEN"] = str(args.max_model_len)
 
     uvicorn.run("turbollm.serve:app", host=args.host, port=args.port, reload=False)
+
 
 if __name__ == "__main__":
     main()

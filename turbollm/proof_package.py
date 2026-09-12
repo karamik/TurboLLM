@@ -1,10 +1,7 @@
 # turbo-llm/turbollm/proof_package.py
 
-import json
-import hashlib
-import uuid
-from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict
+
 
 class InspectionManifest:
     def __init__(self, model_id: str, inspector_version: str):
@@ -45,5 +42,5 @@ class InspectionManifest:
             "confidence": self.confidence,
             "reflection_triggered": self.reflection_triggered,
             "proof_of_inspection": self.proof_of_inspection,
-            "inspector_log": self.inspector_log
+            "inspector_log": self.inspector_log,
         }

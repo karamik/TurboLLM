@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
+import hashlib
 import os
 import sys
-import hashlib
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from hardware_attestation import (
+from hardware_attestation import (  # noqa: E402
     HardwareAttestation,
-    get_hardware_attestation,
-    NEURO_GET_SECURITY_ALL,
 )
 
 
@@ -32,19 +30,20 @@ class TestHardwareAttestation(unittest.TestCase):
         self.assertFalse(result)
         self.assertIsNone(self.att.fd)
 
-
     @patch("os.open", return_value=99)
     @patch("fcntl.ioctl")
     def test_get_security_info_success(self, mock_ioctl, mock_open):
-        puf_bytes = (0x11111111).to_bytes(4, "little") + \
-                    (0x22222222).to_bytes(4, "little") + \
-                    (0x33333333).to_bytes(4, "little") + \
-                    (0x44444444).to_bytes(4, "little")
+        puf_bytes = (
+            (0x11111111).to_bytes(4, "little")
+            + (0x22222222).to_bytes(4, "little")
+            + (0x33333333).to_bytes(4, "little")
+            + (0x44444444).to_bytes(4, "little")
+        )
         flags = bytes([1, 1, 1, 1, 0])
         response = puf_bytes + flags + b"\x00\x00\x00"
 
         def fake_ioctl(fd, cmd, buf, mutate):
-            buf[:len(response)] = response
+            buf[: len(response)] = response
             return 0
 
         mock_ioctl.side_effect = fake_ioctl
@@ -61,7 +60,6 @@ class TestHardwareAttestation(unittest.TestCase):
     def test_get_security_info_unavailable(self, mock_open):
         result = self.att.get_security_info()
         self.assertIsNone(result)
-
 
     @patch.object(HardwareAttestation, "get_security_info")
     def test_full_attestation_ok(self, mock_get_info):
@@ -107,7 +105,6 @@ class TestHardwareAttestation(unittest.TestCase):
         result = self.att.get_full_attestation()
         self.assertFalse(result["attestation_ok"])
 
-
     @patch.object(HardwareAttestation, "get_full_attestation")
     def test_cached_attestation(self, mock_full):
         mock_full.return_value = {
@@ -145,7 +142,6 @@ class TestHardwareAttestation(unittest.TestCase):
         h2 = HardwareAttestation.hash_puf_for_proof(puf_id, "salt2")
         self.assertNotEqual(h1, h2)
 
-
     @patch("hardware_attestation.HardwareAttestation")
     def test_global_attestation_function(self, mock_class):
         mock_instance = MagicMock()
@@ -157,7 +153,9 @@ class TestHardwareAttestation(unittest.TestCase):
         mock_class.return_value = mock_instance
 
         import importlib
+
         import hardware_attestation
+
         importlib.reload(hardware_attestation)
         hardware_attestation.HardwareAttestation = mock_class
 

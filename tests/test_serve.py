@@ -4,11 +4,10 @@ Unit tests for TurboLLM inference server.
 Requires the server to be running (or uses mock for offline testing).
 """
 
-import pytest
-import httpx
-import json
 import time
-from typing import Dict, Any
+
+import httpx
+import pytest
 
 # Базовый URL сервера (можно переопределить через переменную окружения)
 BASE_URL = "http://localhost:8000"
@@ -17,10 +16,12 @@ BASE_URL = "http://localhost:8000"
 TEST_PROMPT = "What is the capital of France?"
 EXPECTED_KEYWORD = "Paris"
 
+
 @pytest.fixture
 def client():
     """Create HTTP client for testing."""
     return httpx.Client(timeout=30.0, base_url=BASE_URL)
+
 
 # -------------------------------------------------------------------
 # Test health endpoint
@@ -32,6 +33,7 @@ def test_health(client):
     data = response.json()
     assert data.get("status") == "ok"
     assert "engine_ready" in data
+
 
 # -------------------------------------------------------------------
 # Test metrics endpoint
@@ -45,6 +47,7 @@ def test_metrics(client):
     # Должны быть метрики turbollm_*
     assert "turbollm_" in text or "# HELP" in text
 
+
 # -------------------------------------------------------------------
 # Test generate endpoint (non-streaming)
 # -------------------------------------------------------------------
@@ -54,7 +57,7 @@ def test_generate(client):
         "prompt": TEST_PROMPT,
         "max_tokens": 20,
         "temperature": 0.0,  # детерминировано
-        "stream": False
+        "stream": False,
     }
     response = client.post("/generate", json=payload)
     assert response.status_code == 200
@@ -64,6 +67,7 @@ def test_generate(client):
     assert "usage" in data
     # Проверяем, что ответ содержит ожидаемое слово (регистронезависимо)
     assert EXPECTED_KEYWORD.lower() in data["text"].lower()
+
 
 # -------------------------------------------------------------------
 # Test generate with longer context (chunked prefill)
@@ -76,7 +80,7 @@ def test_generate_long_context(client):
         "prompt": long_prompt,
         "max_tokens": 10,
         "temperature": 0.0,
-        "stream": False
+        "stream": False,
     }
     start = time.time()
     response = client.post("/generate", json=payload)
@@ -87,6 +91,7 @@ def test_generate_long_context(client):
     # Проверяем, что время ответа разумное (< 10 сек для длинного ввода)
     assert duration < 10.0, f"Long context took {duration:.2f}s, too slow"
 
+
 # -------------------------------------------------------------------
 # Test streaming endpoint
 # -------------------------------------------------------------------
@@ -96,7 +101,7 @@ def test_generate_stream(client):
         "prompt": TEST_PROMPT,
         "max_tokens": 10,
         "temperature": 0.0,
-        "stream": True
+        "stream": True,
     }
     with client.stream("POST", "/generate_stream", json=payload) as response:
         assert response.status_code == 200
@@ -111,6 +116,7 @@ def test_generate_stream(client):
         last = chunks[-1] if chunks else ""
         assert "[DONE]" in last or "ERROR" not in last
 
+
 # -------------------------------------------------------------------
 # Test error handling (invalid model)
 # -------------------------------------------------------------------
@@ -123,6 +129,7 @@ def test_invalid_request(client):
     response = client.post("/generate", json=payload)
     # Должна быть ошибка валидации (422)
     assert response.status_code == 422
+
 
 # -------------------------------------------------------------------
 # Test concurrent requests (basic)
@@ -144,6 +151,7 @@ def test_concurrent_requests(client):
         assert resp.status_code == 200
         data = resp.json()
         assert "text" in data
+
 
 # -------------------------------------------------------------------
 # Запуск тестов, если файл выполняется напрямую

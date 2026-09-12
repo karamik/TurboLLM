@@ -3,19 +3,16 @@
 Benchmark script for TurboLLM.
 Measures latency, throughput, and memory usage.
 Usage:
-    python scripts/benchmark.py --url http://localhost:8000 --prompt "Hello" --requests 100 --concurrency 10
+    python scripts/benchmark.py --url http://localhost:8000 --prompt "Hello" --requests 100 --concurrency 10  # noqa: E501
 """
 
 import argparse
-import time
-import statistics
-import threading
 import concurrent.futures
-from typing import List, Dict, Any
+import statistics
+import time
+from typing import List
+
 import httpx
-import json
-import sys
-import os
 
 # -------------------------------------------------------------------
 # Конфигурация
@@ -27,6 +24,7 @@ DEFAULT_REQUESTS = 100
 DEFAULT_CONCURRENCY = 10
 DEFAULT_TIMEOUT = 60
 
+
 # -------------------------------------------------------------------
 # Вспомогательные функции
 # -------------------------------------------------------------------
@@ -34,6 +32,7 @@ def format_duration(seconds: float) -> str:
     if seconds < 1:
         return f"{seconds * 1000:.2f} ms"
     return f"{seconds:.3f} s"
+
 
 def print_stats(title: str, values: List[float], unit: str = "s"):
     if not values:
@@ -51,6 +50,7 @@ def print_stats(title: str, values: List[float], unit: str = "s"):
     print(f"  median  : {format_duration(median)}")
     print(f"  95th    : {format_duration(p95)}")
     print(f"  99th    : {format_duration(p99)}")
+
 
 # -------------------------------------------------------------------
 # Основной бенчмарк
@@ -121,7 +121,7 @@ def run_benchmark(
                         total_tokens += len(data["text"].split())  # грубо
             end = time.perf_counter()
             latencies.append(end - start)
-        except Exception as e:
+        except Exception:
             errors += 1
             # print(f"  Error: {e}")
 
@@ -159,10 +159,15 @@ def run_benchmark(
     # Дополнительно: использование GPU памяти (если есть nvidia-smi)
     try:
         import subprocess
+
         result = subprocess.run(
-            ["nvidia-smi", "--query-gpu=memory.used,memory.total", "--format=csv,noheader"],
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.used,memory.total",
+                "--format=csv,noheader",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
         if result.returncode == 0:
             lines = result.stdout.strip().splitlines()
@@ -173,25 +178,40 @@ def run_benchmark(
     except FileNotFoundError:
         pass  # nvidia-smi не найден
 
+
 # -------------------------------------------------------------------
 # CLI
 # -------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="Benchmark TurboLLM inference")
-    parser.add_argument("--url", type=str, default=DEFAULT_URL,
-                        help="Base URL of TurboLLM API")
-    parser.add_argument("--prompt", type=str, default=DEFAULT_PROMPT,
-                        help="Prompt text")
-    parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS,
-                        help="Maximum tokens to generate")
-    parser.add_argument("--requests", type=int, default=DEFAULT_REQUESTS,
-                        help="Number of requests")
-    parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
-                        help="Number of concurrent workers")
-    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
-                        help="Timeout per request (seconds)")
-    parser.add_argument("--stream", action="store_true",
-                        help="Use streaming API")
+    parser.add_argument(
+        "--url", type=str, default=DEFAULT_URL, help="Base URL of TurboLLM API"
+    )
+    parser.add_argument(
+        "--prompt", type=str, default=DEFAULT_PROMPT, help="Prompt text"
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=DEFAULT_MAX_TOKENS,
+        help="Maximum tokens to generate",
+    )
+    parser.add_argument(
+        "--requests", type=int, default=DEFAULT_REQUESTS, help="Number of requests"
+    )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=DEFAULT_CONCURRENCY,
+        help="Number of concurrent workers",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=DEFAULT_TIMEOUT,
+        help="Timeout per request (seconds)",
+    )
+    parser.add_argument("--stream", action="store_true", help="Use streaming API")
     args = parser.parse_args()
 
     run_benchmark(
@@ -203,6 +223,7 @@ def main():
         timeout=args.timeout,
         stream=args.stream,
     )
+
 
 if __name__ == "__main__":
     main()
