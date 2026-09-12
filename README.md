@@ -116,6 +116,45 @@ TurboLLM is an **ecosystem** of four integrated layers:
 | **Custom Authentication** | SSO (OAuth2, LDAP), API key management. |
 | **G‑Space Inspector Pro** | Advanced ML classifier with spectral and drift analysis, adaptive reference, and PoI. |
 
+## 🔐 Hardware Attestation (TOTAL‑Neuro Integration)
+
+Every request through the TurboLLM Agent is **cryptographically bound to a physical chip** via the TOTAL‑Neuro hardware attestation layer.
+
+### How it works
+
+Before processing any request, the agent queries the attached neuromorphic chip through the Linux driver:
+
+1. **PUF ID retrieval** — the chip returns a unique 128-bit fingerprint derived from physical silicon variations.
+2. **Security status check** — Active Shield, firmware signature, key unlock status, and zeroization flag are read.
+3. **Attestation decision** — if any check fails, the request is blocked with HTTP 403.
+
+### What gets verified
+
+| Check | Meaning |
+|-------|---------|
+| `shield_ok` | Active Shield mesh is intact (no physical intrusion). |
+| `chip_unlocked` | eFuse key matches — chip is authorized. |
+| `signature_ok` | Firmware signature verified (ECDSA). |
+| `attestation_ok` | PUF stability confirmed. |
+| `zeroize_active` | If HIGH — chip is in emergency wipe mode, request blocked. |
+
+### Hardware Attestation in the Agent
+
+The agent_cell.py calls hardware_attestation.py automatically. If the chip fails authentication, the request is blocked with HTTP 403.
+
+If the chip is unavailable (e.g. running in simulation mode), the agent falls back gracefully and logs the event.
+
+### PUF hash in Proof of Inspection
+
+Each decision includes a puf_hash — SHA-256 of the chip's PUF ID with a unique salt. This hash is added to the poi_chain and submitted to QRAP for immutable audit.
+
+### Compliance and auditing
+
+- Every decision is traceable to a specific chip (via PUF).
+- Proof packages can be replayed and verified offline.
+- Suitable for legal, medical, defence, and aerospace applications.
+
+
 ---
 
 ## 📊 Comparison with Alternatives
