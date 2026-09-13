@@ -159,6 +159,33 @@ Each decision includes a puf_hash — SHA-256 of the chip's PUF ID with a unique
 
 ---
 
+## 🔐 Post-Quantum Signatures
+
+Every proof package is signed with **hybrid post-quantum cryptography**:
+
+| Layer | Algorithm | Purpose |
+|-------|-----------|---------|
+| **Classical** | SHA-256 / ECDSA | Fast verification |
+| **Post-Quantum** | **CRYSTALS-Dilithium3** | Quantum-safe |
+| **Hybrid binding** | SHA-256(classical + pq) | Both must match |
+
+### Why hybrid?
+
+- Today: ECDSA is secure.
+- Post-quantum era: Shor breaks ECDSA, but Dilithium remains secure.
+- Hybrid: attacker must break both.
+
+### Graceful fallback
+
+If liboqs is not installed, simulated mode is used. Production: pip install liboqs-python.
+
+### Status
+
+- 14 unit tests (sign, verify, tampering).
+- Integrated into CI (ci-attestation.yml).
+
+---
+
 ## 📊 Comparison with Alternatives
 
 | Approach | Speed | Context | Security | Audit | Staking | Arbitration | Voting |
