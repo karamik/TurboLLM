@@ -12,6 +12,8 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![vLLM](https://img.shields.io/badge/vLLM-0.6.0%2B-green)
 ![QRAP](https://img.shields.io/badge/QRAP-integrated-orange)
+[![CI](https://github.com/karamik/TurboLLM/actions/workflows/ci.yml/badge.svg)](https://github.com/karamik/TurboLLM/actions/workflows/ci.yml)
+[![Hardware Attestation CI](https://github.com/karamik/TurboLLM/actions/workflows/ci-attestation.yml/badge.svg)](https://github.com/karamik/TurboLLM/actions/workflows/ci-attestation.yml)
 
 ---
 
