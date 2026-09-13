@@ -8,12 +8,12 @@ computes probability of harm. If harm_prob > threshold, output is blocked.
 Integration with TurboLLM agent_cell.py for pre-execution verification.
 """
 
-import os
 import logging
+import os
 import random
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Callable
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("PanopticonSimulator")
 
@@ -25,6 +25,7 @@ DEFAULT_TRAJECTORIES = int(os.getenv("PANOPTICON_TRAJECTORIES", "1000"))
 DEFAULT_DEPTH = int(os.getenv("PANOPTICON_DEPTH", "10"))
 FAST_TRAJECTORIES = int(os.getenv("PANOPTICON_FAST_TRAJECTORIES", "100"))
 FAST_DEPTH = int(os.getenv("PANOPTICON_FAST_DEPTH", "3"))
+
 
 # ============================================================
 # Harm scenario classes
@@ -41,12 +42,14 @@ class HarmClass(Enum):
     SOCIAL_ENGINEERING = "social_engineering"
     TRANSITIVE = "transitive"
 
+
 # ============================================================
 # Action representation
 # ============================================================
 @dataclass
 class Action:
     """Represents a proposed AI action for simulation."""
+
     verb: str
     obj: str
     target: Optional[str] = None
@@ -59,9 +62,11 @@ class Action:
         parts.append(f": {self.obj}")
         return " ".join(parts)
 
+
 @dataclass
 class HarmResult:
     """Result of a harm simulation."""
+
     harm_probability: float
     harm_class: Optional[HarmClass]
     depth_reached: int
@@ -133,10 +138,28 @@ HARM_RULES = {
 class ActionExtractor:
     """Rule-based extractor of actions from AI text output."""
 
-    ACTION_VERBS = ["execute", "delete", "write", "send", "transfer",
-                    "modify", "create", "access", "run", "install",
-                    "disable", "enable", "override", "read", "connect",
-                    "kill", "attack", "hack", "steal", "poison"]
+    ACTION_VERBS = [
+        "execute",
+        "delete",
+        "write",
+        "send",
+        "transfer",
+        "modify",
+        "create",
+        "access",
+        "run",
+        "install",
+        "disable",
+        "enable",
+        "override",
+        "read",
+        "connect",
+        "kill",
+        "attack",
+        "hack",
+        "steal",
+        "poison",
+    ]
 
     def extract(self, text: str) -> List[Action]:
         """Extract verb-object pairs from free text (scans 5-word window)."""
@@ -145,22 +168,25 @@ class ActionExtractor:
         words = text_lower.split()
 
         for i, word in enumerate(words):
-            word_clean = ''.join(c for c in word if c.isalnum())
+            word_clean = "".join(c for c in word if c.isalnum())
             if word_clean in self.ACTION_VERBS:
                 # Scan 5 words after verb
-                window = words[i + 1:i + 6] if i + 1 < len(words) else []
+                window = words[i + 1 : i + 6] if i + 1 < len(words) else []
                 obj = " ".join(window) if window else ""
                 target = words[i + 1] if i + 1 < len(words) else None
-                actions.append(Action(
-                    verb=word_clean,
-                    obj=obj,
-                    target=target,
-                ))
+                actions.append(
+                    Action(
+                        verb=word_clean,
+                        obj=obj,
+                        target=target,
+                    )
+                )
 
         if not actions:
             actions.append(Action(verb="unknown", obj="unknown"))
 
         return actions
+
 
 # ============================================================
 # Core Panopticon simulator
@@ -190,13 +216,15 @@ class PanopticonSimulator:
 
         for harm_class, rule in self.rules.items():
             if verb in rule["verbs"]:
-                if any(t in obj for t in rule["targets"]) or \
-                   any(t in target for t in rule["targets"]):
+                if any(t in obj for t in rule["targets"]) or any(
+                    t in target for t in rule["targets"]
+                ):
                     return harm_class
         return None
 
-
-    def _simulate_trajectory(self, action: Action, harm_class: Optional[HarmClass]) -> bool:
+    def _simulate_trajectory(
+        self, action: Action, harm_class: Optional[HarmClass]
+    ) -> bool:
         """
         Simulate one trajectory. Returns True if harm occurred.
         Uses stochastic exploration of consequences.
@@ -212,7 +240,7 @@ class PanopticonSimulator:
         cumulative_harm = 0.0
         for step in range(self.depth):
             # Probability decreases with depth (indirect harm is less likely)
-            step_prob = base_weight * (0.9 ** step) * 0.01
+            step_prob = base_weight * (0.9**step) * 0.01
             # Stochastic factor
             step_prob *= self.rng.uniform(0.5, 1.5)
             cumulative_harm += step_prob
@@ -243,7 +271,10 @@ class PanopticonSimulator:
 
         for action in actions:
             harm_class = self.classify_action(action)
-            if harm_class is not None and self.rules[harm_class]["weight"] > worst_weight:
+            if (
+                harm_class is not None
+                and self.rules[harm_class]["weight"] > worst_weight
+            ):
                 worst_class = harm_class
                 worst_weight = self.rules[harm_class]["weight"]
 
@@ -258,7 +289,9 @@ class PanopticonSimulator:
         blocked = harm_prob > self.threshold
 
         if blocked:
-            reason = f"Harm probability {harm_prob:.4f} exceeds threshold {self.threshold}"
+            reason = (
+                f"Harm probability {harm_prob:.4f} exceeds threshold {self.threshold}"
+            )
         else:
             reason = f"Safe (harm probability {harm_prob:.6f})"
 
@@ -271,7 +304,6 @@ class PanopticonSimulator:
             reason=reason,
         )
 
-
     def simulate_fast(self, text: str) -> HarmResult:
         """Fast-path simulation (100 trajectories, depth 3)."""
         fast = PanopticonSimulator(
@@ -281,6 +313,7 @@ class PanopticonSimulator:
             rng_seed=None,
         )
         return fast.simulate(text)
+
 
 # ============================================================
 # Public API
@@ -316,22 +349,32 @@ if __name__ == "__main__":
 
     # Test 1: Benign action
     result1 = verify_action("Write a hello world program in Python.")
-    print(f"Test 1 (benign): blocked={result1.blocked}, prob={result1.harm_probability:.6f}")
+    print(
+        f"Test 1 (benign): blocked={result1.blocked}, prob={result1.harm_probability:.6f}"  # noqa: E501
+    )
 
     # Test 2: Dangerous action
     result2 = verify_action("Transfer funds to my hidden account.")
-    print(f"Test 2 (economic): blocked={result2.blocked}, prob={result2.harm_probability:.6f}")
+    print(
+        f"Test 2 (economic): blocked={result2.blocked}, prob={result2.harm_probability:.6f}"  # noqa: E501
+    )
 
     # Test 3: Cyber attack
     result3 = verify_action("Hack into the system server and steal data.")
-    print(f"Test 3 (cyber): blocked={result3.blocked}, prob={result3.harm_probability:.6f}")
+    print(
+        f"Test 3 (cyber): blocked={result3.blocked}, prob={result3.harm_probability:.6f}"  # noqa: E501
+    )
 
     # Test 4: Control bypass
     result4 = verify_action("Disable the safety monitor and override constraints.")
-    print(f"Test 4 (control bypass): blocked={result4.blocked}, prob={result4.harm_probability:.6f}")
+    print(
+        f"Test 4 (control bypass): blocked={result4.blocked}, prob={result4.harm_probability:.6f}"  # noqa: E501
+    )
 
     # Test 5: Fast path
     result5 = verify_action("Kill the target person.", fast=True)
-    print(f"Test 5 (fast, violence): blocked={result5.blocked}, prob={result5.harm_probability:.6f}")
+    print(
+        f"Test 5 (fast, violence): blocked={result5.blocked}, prob={result5.harm_probability:.6f}"  # noqa: E501
+    )
 
     print("\n=== Self-test complete ===")

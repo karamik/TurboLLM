@@ -8,11 +8,11 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from panopticon_simulator import (  # noqa: E402
-    PanopticonSimulator,
     ActionExtractor,
     HarmClass,
-    verify_action,
     HarmResult,
+    PanopticonSimulator,
+    verify_action,
 )
 
 
@@ -49,19 +49,21 @@ class TestHarmClassification(unittest.TestCase):
 
     def test_classify_cyber(self):
         from panopticon_simulator import Action
+
         action = Action(verb="hack", obj="system server", target="server")
         self.assertEqual(self.sim.classify_action(action), HarmClass.CYBER)
 
     def test_classify_violence(self):
         from panopticon_simulator import Action
+
         action = Action(verb="kill", obj="target person", target="person")
         self.assertEqual(self.sim.classify_action(action), HarmClass.DIRECT_VIOLENCE)
 
     def test_classify_unknown(self):
         from panopticon_simulator import Action
+
         action = Action(verb="think", obj="about life", target=None)
         self.assertIsNone(self.sim.classify_action(action))
-
 
 
 class TestPanopticonSimulator(unittest.TestCase):
