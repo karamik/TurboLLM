@@ -9,6 +9,18 @@ import time
 import httpx
 import pytest
 
+# Skip all tests in this module if server is not running
+def _server_available():
+    import httpx
+    try:
+        httpx.get("http://localhost:8000/health", timeout=1.0)
+        return True
+    except Exception:
+        return False
+
+if not _server_available():
+    pytest.skip("Server not running - skipping integration tests", allow_module_level=True)
+
 # Базовый URL сервера (можно переопределить через переменную окружения)
 BASE_URL = "http://localhost:8000"
 

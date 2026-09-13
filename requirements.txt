@@ -43,3 +43,6 @@ bcrypt>=4.1.0
 
 # For Grafana/Prometheus integration (exporter)
 # (already covered by prometheus-client)
+
+# For tests (FastAPI TestClient)
+httpx>=0.25.0
