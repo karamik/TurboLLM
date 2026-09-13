@@ -1,0 +1,9 @@
+# GPU-only dependencies for TurboLLM inference server
+# Install on machines with NVIDIA GPU and CUDA 11.8+
+# Usage: pip install -r requirements-gpu.txt
+
+# vLLM – high-performance inference engine (requires CUDA)
+vllm>=0.4.0
+
+# Quantization & FP8 support
+bitsandbytes>=0.41.0
