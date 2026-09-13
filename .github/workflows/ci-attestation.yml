@@ -42,8 +42,13 @@ jobs:
         run: |
           python -m pytest tests/test_hardware_attestation.py -v
 
+      - name: Run Panopticon simulator tests
+        run: |
+          python -m pytest tests/test_panopticon.py -v
+
       - name: Syntax check Python files
         run: |
           python -m py_compile agent_cell.py
           python -m py_compile hardware_attestation.py
           python -m py_compile real_inspector.py
+          python -m py_compile panopticon_simulator.py
