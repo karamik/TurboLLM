@@ -125,9 +125,9 @@ class PQSigner:
             pq_sig = self._simulate_pq_sign(message)
 
         # Hybrid hash binds both signatures
-        hybrid_hash = hashlib.sha256(
+        hybrid_hash = hashlib.shake_256(
             classical_sig.encode() + pq_sig.encode()
-        ).hexdigest()
+        ).hexdigest(32)  # 256-bit output, Grover-resistant
 
         return PQSignature(
             classical_sig=classical_sig,
@@ -176,9 +176,9 @@ class PQSigner:
                 return False
 
         # Verify hybrid hash
-        expected_hybrid = hashlib.sha256(
+        expected_hybrid = hashlib.shake_256(
             signature.classical_sig.encode() + signature.pq_sig.encode()
-        ).hexdigest()
+        ).hexdigest(32)  # 256-bit output, must match sign side
 
         if expected_hybrid != signature.hybrid_hash:
             logger.warning("Hybrid hash mismatch")

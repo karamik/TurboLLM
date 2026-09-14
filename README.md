@@ -167,7 +167,7 @@ Every proof package is signed with **hybrid post-quantum cryptography**:
 |-------|-----------|---------|
 | **Classical** | SHA-256 / ECDSA | Fast verification |
 | **Post-Quantum** | **CRYSTALS-Dilithium3** | Quantum-safe |
-| **Hybrid binding** | SHA-256(classical + pq) | Both must match |
+| **Hybrid binding** | **SHAKE256** (Grover-resistant) | Both must match, 256-bit quantum security |
 
 ### Why hybrid?
 
