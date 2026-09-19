@@ -1,45 +1,32 @@
 
 
-
-
-
 # 🚀 TurboLLM – Platform for Provable and Safe AI
 
-> **Ultra‑fast inference + internal activation‑level control + decentralised verification + corporate arbitration & voting.**  
-> Run models up to 70B on consumer GPUs with 100k+ token context, and get not just answers, but **provable decisions** certified by a distributed ledger.
+Ultra-fast inference + internal activation-level control + decentralised verification + arbitration & voting.
 
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![vLLM](https://img.shields.io/badge/vLLM-0.6.0%2B-green)
-![QRAP](https://img.shields.io/badge/QRAP-integrated-orange)
-[![CI](https://github.com/karamik/TurboLLM/actions/workflows/ci.yml/badge.svg)](https://github.com/karamik/TurboLLM/actions/workflows/ci.yml)
-[![Hardware Attestation CI](https://github.com/karamik/TurboLLM/actions/workflows/ci-attestation.yml/badge.svg)](https://github.com/karamik/TurboLLM/actions/workflows/ci-attestation.yml)
+Run models up to 70B on consumer GPUs with 100k+ token context, and get not just answers, but provable decisions certified by a distributed ledger.
 
----
+License Python vLLM QRAP CI Hardware Attestation CI
 
 ## 🤯 The Problem – Why AI Remains a Black Box
 
-- ❌ **Long contexts** kill memory (OOM) and speed.
-- ❌ **No trust** – models can hallucinate without explanation.
-- ❌ **Manipulations** – jailbreaks go unnoticed.
-- ❌ **Decisions are not auditable** – you cannot verify how an answer was produced.
-- ❌ **Corporate disputes** lack unbiased, verifiable arbitration.
-- ❌ **Voting and governance** are vulnerable to manipulation.
+❌ Long contexts kill memory (OOM) and speed.  
+❌ No trust – models can hallucinate without explanation.  
+❌ Manipulations – jailbreaks go unnoticed.  
+❌ Decisions are not auditable – you cannot verify how an answer was produced.  
+❌ Corporate disputes lack unbiased, verifiable arbitration.  
+❌ Voting and governance are vulnerable to manipulation.
 
-**We solve all of this.** Not just by speeding up inference, but by looking under the hood of the model and providing cryptographic proof of every decision.
-
----
+We solve all of this. Not just by speeding up inference, but by looking under the hood of the model and providing cryptographic proof of every decision.
 
 ## 💡 Our Solution – More Than Just an Engine
 
-TurboLLM is an **ecosystem** of four integrated layers:
+TurboLLM is an ecosystem of four integrated layers:
 
-1. **Inference Core** (open source) – FP8, PagedAttention, Chunked Prefill, Speculative Decoding.
-2. **G‑Space Inspector** (Enterprise) – real‑time analysis of hidden activations with spectral and drift detection.
-3. **Agent Supervisor + QRAP** – self‑healing agents, blockchain‑based decision verification, and **Proof of Inspection (PoI)**.
-4. **Corporate Governance Suite** – arbitration, voting, and immutable company history.
-
----
+1. **Inference Core (open source)** – FP8, PagedAttention, Chunked Prefill, Speculative Decoding.  
+2. **G‑Space Inspector** – real-time analysis of hidden activations with spectral and drift detection.  
+3. **Agent Supervisor + QRAP** – self-healing agents, ledger-based decision verification, and Proof of Inspection (PoI).  
+4. **Governance Suite** – arbitration, voting, and immutable company history.
 
 ## 🧠 Architecture
 
@@ -64,61 +51,66 @@ TurboLLM is an **ecosystem** of four integrated layers:
 └────────────────────────┬─────────────────────────────────────┘
                          ▼
 ┌──────────────────────────────────────────────────────────────┐
-│   QRAP Blockchain                                           │
+│   QRAP Ledger                                               │
 │   - CellOutput recording (decision + metrics + PoI)         │
 │   - Arbitration verdicts, votes, corporate history          │
+│   - No tokens, no staking, no fees                          │
 └──────────────────────────────────────────────────────────────┘
 ```
 
----
-
 ## ⚡ Key Features
 
-### 1. **Ultra‑Fast Inference on Long Contexts**
-- FP8 quantisation of weights and KV‑cache – **2× less memory**.
+### 1. Ultra‑Fast Inference on Long Contexts
+
+- FP8 quantisation of weights and KV‑cache – 2× less memory.
 - PagedAttention – eliminates fragmentation, linear scaling.
-- Chunked Prefill – first token in **milliseconds** even on 100k tokens.
-- Speculative Decoding – **up to 2.5×** faster generation.
+- Chunked Prefill – first token in milliseconds even on 100k tokens.
+- Speculative Decoding – up to 2.5× faster generation.
 
-### 2. **G‑Space Inspector – Controlling the Model’s “Thoughts”**
+### 2. G‑Space Inspector – Controlling the Model’s “Thoughts”
+
 - Analyses hidden activations (neural representations) before token generation.
-- Detects **hallucinations, jailbreaks, manipulations** at an early stage.
-- **Multi‑layer spectral analysis** (FFT + entropy) catches subtle manipulation patterns.
-- **Cosine drift** detection against adaptive reference vectors.
-- Uses an **ML classifier** trained on synthetic and real data.
-- Overhead **< 5 ms** per request.
+- Detects hallucinations, jailbreaks, manipulations at an early stage.
+- Multi‑layer spectral analysis (FFT + entropy) catches subtle manipulation patterns.
+- Cosine drift detection against adaptive reference vectors.
+- Uses an ML classifier trained on synthetic and real data.
+- Overhead < 5 ms per request.
 
-### 3. **Self‑Healing Agent Supervisor with Proof of Inspection (PoI)**
-- Decides: approve, block, or trigger **reflection**.
+### 3. Self‑Healing Agent Supervisor with Proof of Inspection (PoI)
+
+- Decides: approve, block, or trigger reflection.
 - Reflection – re‑prompts the model with a corrective instruction.
-- **Adaptive reference** – updates the “clean” baseline after each approved request.
-- **Cryptographic Proof of Inspection** – every decision is signed, proving that the G‑Space analysis actually occurred and wasn’t bypassed.
+- Adaptive reference – updates the “clean” baseline after each approved request.
+- Cryptographic Proof of Inspection – every decision is signed, proving that the G‑Space analysis actually occurred and wasn’t bypassed.
 - Logs all actions and metrics to QRAP for auditing.
 
-### 4. **Corporate Governance Suite**
-- **Decentralised Arbitration** – submit business disputes; the multi‑agent cluster with G‑Space analysis returns a **verifiable verdict** with rationale and confidence.
-- **Tamper‑proof Voting** – corporate votes are recorded on‑chain, each vote is signed cryptographically. Anti‑spam is handled by rate limits and reputation.
+### 4. Governance Suite
+
+- **Decentralised Arbitration** – submit disputes; the multi‑agent cluster with G‑Space analysis returns a verifiable verdict with rationale and confidence.
+- **Tamper‑proof Voting** – votes are recorded on‑ledger, each vote is signed cryptographically. Anti‑spam is handled by rate limits and reputation, not fees.
 - **Immutable Company History** – every arbitration, vote, and major decision becomes part of a permanent, auditable ledger.
 
-### 5. **Governance and Access (QRAP)**
-- On registration, users get a **QRAP identity and cryptographic keypair**.
-- Voting rights on supervisor parameters (confidence thresholds, agent count) are assigned by role and reputation.
-- API access is governed by policy and quotas.
+### 5. Governance and Access (QRAP)
 
-### 6. **Enterprise Modules (Closed‑Source, Available on Request)**
+- On registration, users get a QRAP identity and cryptographic keypair.
+- Voting rights on supervisor parameters (confidence thresholds, agent count) are assigned by role and reputation, not by tokens.
+- API access is governed by policy and quotas.
+- No tokens, no staking, no exchange, no pay‑per‑use.
+
+### 6. Additional Modules (Optional)
 
 | Module | What it does |
 |--------|--------------|
-| **Smart Load Balancer** | Adaptive routing across GPUs/nodes, eliminating hot spots. |
-| **Prompt Cache** | Caches KV‑prefixes of frequent prompts – saves up to 70% compute. |
-| **Data Security & Filtering** | Scans inputs/outputs for PII, secrets, injections. |
-| **Admin Dashboard** | Web UI with usage graphs, audit logs, governance management, and spectral metrics visualisation. |
-| **Custom Authentication** | SSO (OAuth2, LDAP), API key management. |
-| **G‑Space Inspector Pro** | Advanced ML classifier with spectral and drift analysis, adaptive reference, and PoI. |
+| Smart Load Balancer | Adaptive routing across GPUs/nodes, eliminating hot spots. |
+| Prompt Cache | Caches KV‑prefixes of frequent prompts – saves up to 70% compute. |
+| Data Security & Filtering | Scans inputs/outputs for PII, secrets, injections. |
+| Admin Dashboard | Web UI with usage graphs, audit logs, governance management, and spectral metrics visualisation. |
+| Custom Authentication | SSO (OAuth2, LDAP), API key management. |
+| G‑Space Inspector Pro | Advanced ML classifier with spectral and drift analysis, adaptive reference, and PoI. |
 
 ## 🔐 Hardware Attestation (TOTAL‑Neuro Integration)
 
-Every request through the TurboLLM Agent is **cryptographically bound to a physical chip** via the TOTAL‑Neuro hardware attestation layer.
+Every request through the TurboLLM Agent is cryptographically bound to a physical chip via the TOTAL‑Neuro hardware attestation layer.
 
 ### How it works
 
@@ -140,13 +132,13 @@ Before processing any request, the agent queries the attached neuromorphic chip 
 
 ### Hardware Attestation in the Agent
 
-The agent_cell.py calls hardware_attestation.py automatically. If the chip fails authentication, the request is blocked with HTTP 403.
+The `agent_cell.py` calls `hardware_attestation.py` automatically. If the chip fails authentication, the request is blocked with HTTP 403.
 
 If the chip is unavailable (e.g. running in simulation mode), the agent falls back gracefully and logs the event.
 
 ### PUF hash in Proof of Inspection
 
-Each decision includes a puf_hash — SHA-256 of the chip's PUF ID with a unique salt. This hash is added to the poi_chain and submitted to QRAP for immutable audit.
+Each decision includes a `puf_hash` — SHA-256 of the chip's PUF ID with a unique salt. This hash is added to the `poi_chain` and submitted to QRAP for immutable audit.
 
 ### Compliance and auditing
 
@@ -154,18 +146,15 @@ Each decision includes a puf_hash — SHA-256 of the chip's PUF ID with a unique
 - Proof packages can be replayed and verified offline.
 - Suitable for legal, medical, defence, and aerospace applications.
 
-
----
-
 ## 🔐 Post-Quantum Signatures
 
-Every proof package is signed with **hybrid post-quantum cryptography**:
+Every proof package is signed with hybrid post-quantum cryptography:
 
 | Layer | Algorithm | Purpose |
 |-------|-----------|---------|
-| **Classical** | SHA-256 / ECDSA | Fast verification |
-| **Post-Quantum** | **CRYSTALS-Dilithium3** | Quantum-safe |
-| **Hybrid binding** | **SHAKE256** (Grover-resistant) | Both must match, 256-bit quantum security |
+| Classical | SHA-256 / ECDSA | Fast verification |
+| Post-Quantum | CRYSTALS-Dilithium3 | Quantum-safe |
+| Hybrid binding | SHAKE256 (Grover-resistant) | Both must match, 256-bit quantum security |
 
 ### Why hybrid?
 
@@ -175,14 +164,12 @@ Every proof package is signed with **hybrid post-quantum cryptography**:
 
 ### Graceful fallback
 
-If liboqs is not installed, simulated mode is used. Production: pip install liboqs-python.
+If `liboqs` is not installed, simulated mode is used. Production: `pip install liboqs-python`.
 
 ### Status
 
 - 14 unit tests (sign, verify, tampering).
-- Integrated into CI (ci-attestation.yml).
-
----
+- Integrated into CI (`ci-attestation.yml`).
 
 ## 📊 Comparison with Alternatives
 
@@ -191,9 +178,7 @@ If liboqs is not installed, simulated mode is used. Production: pip install libo
 | Hugging Face | 🟡 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
 | Plain vLLM | 🟢 | 🟢 | 🟡 | 🔴 | 🔴 | 🔴 |
 | TensorRT‑LLM | 🟢 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 |
-| **TurboLLM + G‑Space + QRAP** | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 |
-
----
+| TurboLLM + G‑Space + QRAP | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 |
 
 ## 🚦 Quick Start
 
@@ -219,12 +204,13 @@ python agent_cell.py
 
 ### Use the API
 
-- **Regular prompt**: `POST /process`
-- **Streaming prompt**: `POST /stream`
-- **Arbitration**: `POST /arbitrate` (structured case)
-- **Vote**: `POST /vote`
+- Regular prompt: `POST /process`
+- Streaming prompt: `POST /stream`
+- Arbitration: `POST /arbitrate` (structured case)
+- Vote: `POST /vote`
 
 Example arbitration request:
+
 ```bash
 curl -X POST http://localhost:8080/arbitrate \
   -H "Content-Type: application/json" \
@@ -240,15 +226,11 @@ curl -X POST http://localhost:8080/arbitrate \
   }'
 ```
 
----
-
 ## 🖥️ Hardware Requirements
 
-- **GPU**: NVIDIA Ada Lovelace (RTX 4090, RTX 6000 Ada), Hopper (H100), or newer.
-- **VRAM**: 24 GB+ recommended for 70B models with long contexts.
-- **CUDA**: 11.8+.
-
----
+- GPU: NVIDIA Ada Lovelace (RTX 4090, RTX 6000 Ada), Hopper (H100), or newer.
+- VRAM: 24 GB+ recommended for 70B models with long contexts.
+- CUDA: 11.8+.
 
 ## 📦 Deployment (Docker / Kubernetes)
 
@@ -258,15 +240,11 @@ docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
 
 Ready‑to‑use Helm charts for Kubernetes are in `deploy/helm`.
 
----
-
 ## 📈 Monitoring & Alerts
 
-- **Prometheus** metrics: latency (TTFT, TPOT), KV‑cache usage, request queue, spectral anomalies, cosine drift.
-- **Grafana** dashboards with G‑Space visualisations, spectral metrics, and supervisor status.
-- **Alerts** in Telegram/Slack when cache >90%, queue grows, or spectral anomalies exceed threshold.
-
----
+- Prometheus metrics: latency (TTFT, TPOT), KV‑cache usage, request queue, spectral anomalies, cosine drift.
+- Grafana dashboards with G‑Space visualisations, spectral metrics, and supervisor status.
+- Alerts in Telegram/Slack when cache >90%, queue grows, or spectral anomalies exceed threshold.
 
 ## 🔒 Audit Ledger (qrap-lite)
 
@@ -275,21 +253,16 @@ Every CellOutput is hash-chained and PQ-signed. No tokens, no fees, no wallets.
 
 - Service: `qrap-lite/` — SQLite + aiohttp + hybrid PQ signatures.
 - Docs: [qrap-lite/README.md](qrap-lite/README.md)
-- API: `POST /api/v1/block`, `GET /api/v1/block/{id}`, `GET /api/v1/blocks/{id}/verify`, `GET /api/v1/verify`
+- API: `POST /api/v1/block`, `GET /api/v1/block/{id}`, `GET /api/v1/blocks/{id}/verify`, `GET /api/v1/blocks/{id}/proof`, `GET /api/v1/verify`
 - Optional Bearer auth via `QRAP_LITE_API_KEY`.
 - Integration: `export CLUSTER_ENDPOINT="http://localhost:50051/api/v1/block"`
 
 ## 📬 Contact & Support
 
-For licensing, customisation, or Enterprise modules:
+For technical support and integration questions:
 
-👉 [@tec_support_bot](https://t.me/tec_support_bot) (Telegram)
-
----
+👉 @tec_support_bot (Telegram)
 
 ## 📄 License
 
-[MIT](LICENSE) © TurboLLM Team
-```
-
----
+MIT © TurboLLM Team
