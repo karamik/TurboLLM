@@ -1,4 +1,4 @@
-#QRAP_LITE_LEDGER_V2
+#QRAP_LITE_LEDGER_V3
 """Append-only block ledger with a hash chain and PQ signatures."""
 import hashlib
 import json
@@ -86,6 +86,39 @@ class Ledger:
         try:
             row = conn.execute("SELECT * FROM blocks WHERE block_id = ?", (block_id,)).fetchone()
             return self._row_to_dict(row) if row else None
+        finally:
+            conn.close()
+
+    def get_proof(self, block_id):
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM blocks WHERE block_id = ?", (block_id,)).fetchone()
+            if not row:
+                return None
+            sig_info = json.loads(row["signature"])
+            return {
+                "block_id": row["block_id"],
+                "height": row["height"],
+                "prev_hash": row["prev_hash"],
+                "block_hash": row["block_hash"],
+                "cell_output": json.loads(row["cell_output"]),
+                "signature": sig_info,
+                "pubkey": row["pubkey"],
+                "timestamp": row["timestamp"],
+                "verification": {
+                    "algorithm": sig_info.get("pq_algorithm", "unknown"),
+                    "simulated": sig_info.get("simulated", True),
+                    "signed_message": {"block_hash": row["block_hash"]},
+                    "hash_formula": "block_hash = SHA256(prev_hash + canonical_json(cell_output))",
+                    "canonical_json": "json.dumps(obj, sort_keys=True, separators=(',', ':'))",
+                    "steps": [
+                        "1. Recompute block_hash from prev_hash and cell_output.",
+                        "2. Compare recomputed value with block_hash field.",
+                        "3. Verify signature over {'block_hash': block_hash} using pubkey.",
+                        "See qrap-lite/verify_proof.py for a reference implementation."
+                    ]
+                }
+            }
         finally:
             conn.close()
 

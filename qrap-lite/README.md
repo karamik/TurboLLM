@@ -1,4 +1,4 @@
-#QRAP_LITE_README_V2
+#QRAP_LITE_README_V3
 # qrap-lite
 
 A minimal append-only ledger for provable auditing of TurboLLM decisions.
@@ -54,6 +54,7 @@ When the key is not set:
 | GET    | /api/v1/block/{block_id}            | no   | Return a block by block_id                     |
 | GET    | /api/v1/blocks?limit=N              | no   | List the most recent blocks                    |
 | GET    | /api/v1/blocks/{block_id}/verify    | no   | Verify a single block                          |
+| GET    | /api/v1/blocks/{block_id}/proof     | no   | Export a full proof package for a block        |
 | GET    | /api/v1/verify                      | no   | Verify the integrity of the entire hash chain  |
 | GET    | /health                             | no   | Liveness probe                                 |
 
@@ -86,6 +87,24 @@ When the key is not set:
 
     # Verify the whole chain
     curl http://localhost:50051/api/v1/verify
+
+## Offline verification
+
+Every block can be exported as a self-contained proof package:
+
+    curl http://localhost:50051/api/v1/blocks/b1/proof > proof.json
+    python3 qrap-lite/verify_proof.py proof.json
+
+The verifier checks:
+
+- block_hash: SHA256(prev_hash + canonical_json(cell_output)) matches.
+- hybrid_hash: SHAKE256(classical_sig + pq_sig) matches.
+- signature authenticity: requires liboqs in real PQ mode; reported as
+  null when running in simulated mode.
+
+The proof package contains everything needed to verify the block without
+network access to the node. Anyone can hold it, re-run the checks offline,
+and confirm the record has not been altered since it was appended.
 
 ## Database schema
 

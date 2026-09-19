@@ -1,4 +1,4 @@
-#QRAP_LITE_SERVER_V2
+#QRAP_LITE_SERVER_V3
 """qrap-lite HTTP server (aiohttp)."""
 import argparse
 import logging
@@ -78,6 +78,13 @@ def create_app(db_path, api_key=None):
         limit = max(1, min(limit, 500))
         return web.json_response({"blocks": ledger.list(limit)})
 
+    async def handle_proof(request):
+        block_id = request.match_info["block_id"]
+        proof = ledger.get_proof(block_id)
+        if proof is None:
+            return web.json_response({"error": "not found"}, status=404)
+        return web.json_response(proof)
+
     async def handle_verify_chain(request):
         return web.json_response(ledger.verify_chain())
 
@@ -96,6 +103,7 @@ def create_app(db_path, api_key=None):
     app.router.add_get("/api/v1/block/{block_id}", handle_get)
     app.router.add_get("/api/v1/blocks", handle_list)
     app.router.add_get("/api/v1/blocks/{block_id}/verify", handle_verify_block)
+    app.router.add_get("/api/v1/blocks/{block_id}/proof", handle_proof)
     app.router.add_get("/api/v1/verify", handle_verify_chain)
     app.router.add_get("/health", handle_health)
     return app
