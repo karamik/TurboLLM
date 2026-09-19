@@ -268,6 +268,17 @@ Ready‑to‑use Helm charts for Kubernetes are in `deploy/helm`.
 
 ---
 
+## 🔒 Audit Ledger (qrap-lite)
+
+Free, append-only ledger for provable auditing of AI decisions.
+Every CellOutput is hash-chained and PQ-signed. No tokens, no fees, no wallets.
+
+- Service: `qrap-lite/` — SQLite + aiohttp + hybrid PQ signatures.
+- Docs: [qrap-lite/README.md](qrap-lite/README.md)
+- API: `POST /api/v1/block`, `GET /api/v1/block/{id}`, `GET /api/v1/blocks/{id}/verify`, `GET /api/v1/verify`
+- Optional Bearer auth via `QRAP_LITE_API_KEY`.
+- Integration: `export CLUSTER_ENDPOINT="http://localhost:50051/api/v1/block"`
+
 ## 📬 Contact & Support
 
 For licensing, customisation, or Enterprise modules:

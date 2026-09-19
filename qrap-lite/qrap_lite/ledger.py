@@ -1,4 +1,4 @@
-#QRAP_LITE_LEDGER_V1
+#QRAP_LITE_LEDGER_V2
 """Append-only block ledger with a hash chain and PQ signatures."""
 import hashlib
 import json
@@ -112,6 +112,29 @@ class Ledger:
                     return {"ok": False, "height": row["height"], "error": "signature invalid"}
                 prev = row["block_hash"]
             return {"ok": True, "height": len(rows)}
+        finally:
+            conn.close()
+
+    def verify_block(self, block_id):
+        conn = self._conn()
+        try:
+            row = conn.execute("SELECT * FROM blocks WHERE block_id = ?", (block_id,)).fetchone()
+            if not row:
+                return None
+            prev_row = conn.execute(
+                "SELECT block_hash FROM blocks WHERE height = ?", (row["height"] - 1,)
+            ).fetchone()
+            prev_hash_expected = prev_row["block_hash"] if prev_row else GENESIS_HASH
+            if prev_hash_expected != row["prev_hash"]:
+                return {"ok": False, "block_id": block_id, "height": row["height"], "error": "prev_hash mismatch"}
+            cell_output = json.loads(row["cell_output"])
+            expected = _compute_block_hash(row["prev_hash"], cell_output)
+            if expected != row["block_hash"]:
+                return {"ok": False, "block_id": block_id, "height": row["height"], "error": "hash mismatch"}
+            sig_info = json.loads(row["signature"])
+            if not self.signer.verify_dict({"block_hash": row["block_hash"]}, sig_info):
+                return {"ok": False, "block_id": block_id, "height": row["height"], "error": "signature invalid"}
+            return {"ok": True, "block_id": block_id, "height": row["height"]}
         finally:
             conn.close()
 

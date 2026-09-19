@@ -1,4 +1,4 @@
-#QRAP_LITE_README_V1
+#QRAP_LITE_README_V2
 # qrap-lite
 
 A minimal append-only ledger for provable auditing of TurboLLM decisions.
@@ -29,33 +29,62 @@ and that the record has not been modified since.
 On the first run, an SQLite database is created and a node key is generated
 and stored inside that same database. The key survives restarts.
 
+## Authentication
+
+By default the server runs open (no auth). To require a Bearer token on
+POST endpoints, set the environment variable QRAP_LITE_API_KEY before start:
+
+    export QRAP_LITE_API_KEY="change_me"
+    python run.py --port 50051 --db qrap_lite.db
+
+When the key is set:
+
+- POST /api/v1/block requires the header:  Authorization: Bearer <key>
+- All GET endpoints remain public (audit must be readable).
+
+When the key is not set:
+
+- All endpoints are open. Use only on localhost or behind a trusted proxy.
+
 ## API
 
-| Method | Path                      | Description                                  |
-|--------|---------------------------|----------------------------------------------|
-| POST   | /api/v1/block             | Accept CellOutput, sign it, append to ledger |
-| GET    | /api/v1/block/{block_id}  | Return a block by block_id                   |
-| GET    | /api/v1/blocks?limit=N    | List the most recent blocks                  |
-| GET    | /api/v1/verify            | Verify the integrity of the entire hash chain|
-| GET    | /health                   | Liveness probe                               |
+| Method | Path                                | Auth | Description                                    |
+|--------|-------------------------------------|------|------------------------------------------------|
+| POST   | /api/v1/block                       | yes* | Accept CellOutput, sign it, append to ledger   |
+| GET    | /api/v1/block/{block_id}            | no   | Return a block by block_id                     |
+| GET    | /api/v1/blocks?limit=N              | no   | List the most recent blocks                    |
+| GET    | /api/v1/blocks/{block_id}/verify    | no   | Verify a single block                          |
+| GET    | /api/v1/verify                      | no   | Verify the integrity of the entire hash chain  |
+| GET    | /health                             | no   | Liveness probe                                 |
+
+* Auth only when QRAP_LITE_API_KEY is set.
 
 ## Examples
 
     # Liveness
     curl http://localhost:50051/health
 
-    # Append a block
+    # Append a block (open mode)
     curl -X POST http://localhost:50051/api/v1/block \
       -H "Content-Type: application/json" \
       -d '{"block_id":"b1","decision":"APPROVED","confidence":0.97}'
 
+    # Append a block (with Bearer token)
+    curl -X POST http://localhost:50051/api/v1/block \
+      -H "Authorization: Bearer change_me" \
+      -H "Content-Type: application/json" \
+      -d '{"block_id":"b2","decision":"BLOCKED","confidence":0.42}'
+
     # Get a block
     curl http://localhost:50051/api/v1/block/b1
+
+    # Verify a single block
+    curl http://localhost:50051/api/v1/blocks/b1/verify
 
     # List recent blocks
     curl "http://localhost:50051/api/v1/blocks?limit=10"
 
-    # Verify the chain
+    # Verify the whole chain
     curl http://localhost:50051/api/v1/verify
 
 ## Database schema
@@ -80,15 +109,15 @@ and stored inside that same database. The key survives restarts.
 - Persistent key: the node key lives in the database and survives restarts.
 - Tamper detection: GET /api/v1/verify returns
   {"ok": false, "height": N, "error": "..."} if the chain has been altered.
+- Per-block verification: GET /api/v1/blocks/{id}/verify checks the block,
+  its prev_hash linkage, and its signature without scanning the whole chain.
 
 ## Integration with TurboLLM
 
 In agent_cell.py:
 
     export CLUSTER_ENDPOINT="http://localhost:50051/api/v1/block"
-
-If your node requires a Bearer token, set CLUSTER_API_KEY.
-qrap-lite does not check tokens today - add it if you need it.
+    export CLUSTER_API_KEY="change_me"   # only if QRAP_LITE_API_KEY is set
 
 ## Limitations
 
