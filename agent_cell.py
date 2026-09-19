@@ -65,7 +65,7 @@ TURBOLLM_ENDPOINT = os.getenv("TURBOLLM_ENDPOINT", "http://turbollm:8000/v1")
 TURBOLLM_MODEL = os.getenv("TURBOLLM_MODEL", "meta-llama/Meta-Llama-3-70B")
 TURBOLLM_API_KEY = os.getenv("TURBOLLM_API_KEY", "EMPTY")
 
-CLUSTER_ENDPOINT = os.getenv("CLUSTER_ENDPOINT", "http://qrap-node:50051/api/v1/block")
+CLUSTER_ENDPOINT = os.getenv("CLUSTER_ENDPOINT", "http://localhost:50051/api/v1/block")
 CLUSTER_API_KEY = os.getenv("CLUSTER_API_KEY", "")
 
 CELL_ID = os.getenv("CELL_ID", f"cell_{random.randint(1000, 9999)}")
