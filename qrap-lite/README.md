@@ -1,0 +1,100 @@
+#QRAP_LITE_README_V1
+# qrap-lite
+
+A minimal append-only ledger for provable auditing of TurboLLM decisions.
+Free. No tokens, no staking, no fees, no wallets, no USDT.
+
+## What it is
+
+qrap-lite is a small HTTP service that:
+
+1. Accepts POST /api/v1/block with a JSON body (CellOutput from agent_cell.py).
+2. Computes a hash chain: block_hash = SHA256(prev_hash || canonical_json(cell_output)).
+3. Signs block_hash with a hybrid post-quantum signature via pq_signer.py
+   (ECDSA + Dilithium3 + SHAKE256).
+4. Stores the block in SQLite.
+5. Exposes read and verify endpoints over HTTP.
+
+## Why
+
+Provable audit: every AI decision can be verified - that it happened, when,
+with what confidence, which chip computed it (via puf_hash inside cell_output),
+and that the record has not been modified since.
+
+## Run
+
+    cd qrap-lite
+    python run.py --port 50051 --db qrap_lite.db
+
+On the first run, an SQLite database is created and a node key is generated
+and stored inside that same database. The key survives restarts.
+
+## API
+
+| Method | Path                      | Description                                  |
+|--------|---------------------------|----------------------------------------------|
+| POST   | /api/v1/block             | Accept CellOutput, sign it, append to ledger |
+| GET    | /api/v1/block/{block_id}  | Return a block by block_id                   |
+| GET    | /api/v1/blocks?limit=N    | List the most recent blocks                  |
+| GET    | /api/v1/verify            | Verify the integrity of the entire hash chain|
+| GET    | /health                   | Liveness probe                               |
+
+## Examples
+
+    # Liveness
+    curl http://localhost:50051/health
+
+    # Append a block
+    curl -X POST http://localhost:50051/api/v1/block \
+      -H "Content-Type: application/json" \
+      -d '{"block_id":"b1","decision":"APPROVED","confidence":0.97}'
+
+    # Get a block
+    curl http://localhost:50051/api/v1/block/b1
+
+    # List recent blocks
+    curl "http://localhost:50051/api/v1/blocks?limit=10"
+
+    # Verify the chain
+    curl http://localhost:50051/api/v1/verify
+
+## Database schema
+
+    CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+    CREATE TABLE blocks (
+        height INTEGER PRIMARY KEY AUTOINCREMENT,
+        block_id TEXT UNIQUE NOT NULL,
+        prev_hash TEXT NOT NULL,
+        block_hash TEXT NOT NULL,
+        cell_output TEXT NOT NULL,
+        signature TEXT NOT NULL,
+        pubkey TEXT NOT NULL,
+        timestamp TEXT NOT NULL
+    );
+
+## Guarantees
+
+- Append-only: blocks are never deleted or modified through the API.
+- Hash chain: modifying any block breaks verify for it and all following blocks.
+- PQ signature: forgery requires breaking both ECDSA and Dilithium3 simultaneously.
+- Persistent key: the node key lives in the database and survives restarts.
+- Tamper detection: GET /api/v1/verify returns
+  {"ok": false, "height": N, "error": "..."} if the chain has been altered.
+
+## Integration with TurboLLM
+
+In agent_cell.py:
+
+    export CLUSTER_ENDPOINT="http://localhost:50051/api/v1/block"
+
+If your node requires a Bearer token, set CLUSTER_API_KEY.
+qrap-lite does not check tokens today - add it if you need it.
+
+## Limitations
+
+- No consensus: single node, single database.
+- No P2P: HTTP only.
+- No decentralization: this is a ledger, not a blockchain network.
+- Multi-node replication is out of scope.
+
+This is intentional: the goal is provable audit, not a crypto network.
