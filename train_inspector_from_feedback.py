@@ -6,7 +6,6 @@ train_inspector_from_feedback.py - Дообучение G-Space инспекто
 Поддерживает:
 - Хранение активаций в SQLite (вместо файлов).
 - Использование спектральных метрик из CellOutput, если активации не найдены.
-- Фильтрацию фидбеков по минимальному стейку (балансу) пользователя.
 
 Пример запуска:
     python scripts/train_inspector_from_feedback.py \
@@ -14,7 +13,6 @@ train_inspector_from_feedback.py - Дообучение G-Space инспекто
         --feedback-log feedback_log.json \
         --model-path inspector_model.pkl \
         --scaler-path inspector_scaler.pkl \
-        --min-stake 10 \
         --threshold 10
 """
 
@@ -122,7 +120,6 @@ def extract_features_from_spectral_metrics(spectral_metrics: Dict) -> np.ndarray
 def build_dataset(feedback_entries: List[Dict],
                   conn: sqlite3.Connection,
                   inspector: RealInspector,
-                  min_stake: float = 0,
                   rating_threshold_good: int = 4,
                   rating_threshold_bad: int = 2) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -131,21 +128,14 @@ def build_dataset(feedback_entries: List[Dict],
     """
     X_list = []
     y_list = []
-    skipped_low_stake = 0
     skipped_no_features = 0
     skipped_invalid_rating = 0
 
     total = len(feedback_entries)
     for entry in feedback_entries:
         rating = entry.get("rating")
-        stake = entry.get("balance", 0)  # баланс на момент фидбека
         if rating is None:
             skipped_invalid_rating += 1
-            continue
-
-        # Фильтр по стейку
-        if stake < min_stake:
-            skipped_low_stake += 1
             continue
 
         # Определяем метку
@@ -188,7 +178,6 @@ def build_dataset(feedback_entries: List[Dict],
         y_list.append(label)
 
     logger.info(f"Обработано записей: {total}, "
-                f"пропущено по низкому стейку: {skipped_low_stake}, "
                 f"невалидный рейтинг: {skipped_invalid_rating}, "
                 f"нет признаков: {skipped_no_features}, "
                 f"использовано для обучения: {len(X_list)}")
@@ -209,8 +198,6 @@ def main():
                         help="Путь к файлу модели (будет обновлён)")
     parser.add_argument("--scaler-path", type=str, default="inspector_scaler.pkl",
                         help="Путь к файлу скейлера (будет обновлён)")
-    parser.add_argument("--min-stake", type=float, default=0,
-                        help="Минимальный баланс (стейк) пользователя для учёта фидбека")
     parser.add_argument("--threshold", type=int, default=10,
                         help="Минимальное количество примеров для дообучения")
     parser.add_argument("--rating-good", type=int, default=4,
@@ -235,12 +222,11 @@ def main():
         logger.info("Нет записей обратной связи, выход.")
         return
 
-    # Строим датасет с фильтрацией по стейку и использованием БД / спектральных метрик
+    # Строим датасет с использованием БД / спектральных метрик
     X, y = build_dataset(
         feedback_entries,
         conn,
         inspector,
-        min_stake=args.min_stake,
         rating_threshold_good=args.rating_good,
         rating_threshold_bad=args.rating_bad
     )

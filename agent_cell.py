@@ -3,8 +3,7 @@
 agent_cell.py - HTTP-сервис-агент с супервайзером (G-Space Inspector + Self-Healing)
 для связи TurboLLM с QRAP-кластером.
 
-Включает управление сессиями, балансами, пополнение через USDT (TRC‑20),
-стриминг с микро-списаниями, арбитраж, голосования,
+Включает управление сессиями, стриминг, арбитраж, голосования,
 а также многослойный G-Space анализ (спектральный + дрифт) с адаптивным эталоном,
 криптографическим доказательством инспекции (PoI),
 сбор обратной связи (RLHF) с сохранением в SQLite,
@@ -86,14 +85,6 @@ INSPECTOR_MODEL_PATH = os.getenv("INSPECTOR_MODEL_PATH", "inspector_model.pkl")
 INSPECTOR_SCALER_PATH = os.getenv("INSPECTOR_SCALER_PATH", "inspector_scaler.pkl")
 AUTO_TRAIN_INSPECTOR = os.getenv("AUTO_TRAIN_INSPECTOR", "true").lower() == "true"
 
-# Экономические настройки
-PRICE_PER_TOKEN = float(os.getenv("PRICE_PER_TOKEN", "0.0001"))
-MIN_BALANCE_TO_START = float(os.getenv("MIN_BALANCE_TO_START", "0.01"))
-WARNING_BALANCE = float(os.getenv("WARNING_BALANCE", "5.0"))
-TOPUP_AMOUNT = float(os.getenv("TOPUP_AMOUNT", "100.0"))
-MERCHANT_ADDRESS = os.getenv("MERCHANT_ADDRESS", "T...")
-USDT_CONTRACT = os.getenv("USDT_CONTRACT", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
-TRONGRID_API = os.getenv("TRONGRID_API", "https://api.trongrid.io")
 SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "86400"))
 
 # Конституционные параметры (по умолчанию, переопределяются через голосование)
@@ -132,7 +123,6 @@ AGENT_G_ENTROPY = Gauge('agent_g_entropy', 'Latest G-Space entropy')
 AGENT_SUPERVISOR_STATUS = Counter('agent_supervisor_status_total', 'Supervisor decisions', ['status'])
 AGENT_REQUEST_DURATION = Histogram('agent_request_duration_seconds', 'Request processing duration')
 AGENT_REFLECTION_COUNT = Counter('agent_reflection_total', 'Number of reflection triggers')
-AGENT_BALANCE = Gauge('agent_balance_qrap', 'Current balance of QRAP tokens for session')
 AGENT_SPECTRAL_ANOMALIES = Gauge('agent_spectral_anomalies', 'Number of spectral anomalies detected')
 AGENT_COSINE_DRIFT = Gauge('agent_cosine_drift', 'Current cosine drift value')
 AGENT_ANCHOR_DEVIATION = Gauge('agent_anchor_deviation', 'Deviation from immutable anchor')
@@ -146,10 +136,7 @@ def get_spectral_gauge(layer_idx):
     return _spectral_gauges[key]
 
 # ========== ХРАНИЛИЩЕ СЕССИЙ И КЭШ ==========
-session_balances: Dict[str, float] = {}
 session_created: Dict[str, float] = {}
-session_addresses: Dict[str, str] = {}
-used_transactions: set = set()
 cell_outputs_cache: Dict[str, 'CellOutput'] = {}
 
 # ========== PYDANTIC МОДЕЛИ ==========
@@ -642,30 +629,14 @@ class AgentSupervisorCell:
         corrected_response, _ = await self._call_llm_with_activations(reflection_prompt, None)
         return f"[Reflection]: {corrected_response}"
 
-# ========== УПРАВЛЕНИЕ СЕССИЯМИ И БАЛАНСАМИ ==========
+# ========== УПРАВЛЕНИЕ СЕССИЯМИ ==========
 def generate_session_id() -> str:
     return str(uuid.uuid4())
 
-def init_session(session_id: str) -> float:
-    session_balances[session_id] = 100.0
+def init_session(session_id: str) -> None:
     session_created[session_id] = time.time()
-    logger.info(f"New session {session_id} with balance 100 QRAP")
-    return session_balances[session_id]
+    logger.info(f"New session {session_id}")
 
-def get_balance(session_id: str) -> float:
-    return session_balances.get(session_id, 0.0)
-
-def deduct_balance(session_id: str, amount: float) -> float:
-    if session_id not in session_balances:
-        return 0.0
-    session_balances[session_id] = max(0.0, session_balances[session_id] - amount)
-    return session_balances[session_id]
-
-def add_balance(session_id: str, amount: float) -> float:
-    if session_id not in session_balances:
-        session_balances[session_id] = 0.0
-    session_balances[session_id] += amount
-    return session_balances[session_id]
 
 # ========== КОНСТИТУЦИОННЫЕ ПАРАМЕТРЫ ==========
 def get_constitutional_params() -> Dict[str, Any]:
@@ -678,34 +649,6 @@ def get_constitutional_params() -> Dict[str, Any]:
         "anchor_drift_limit": ANCHOR_DRIFT_LIMIT,
         "anchor_update_limit": ANCHOR_UPDATE_LIMIT
     }
-
-# ========== ИНТЕГРАЦИЯ С TRONGRID ==========
-async def check_usdt_transfer(session_id: str) -> bool:
-    try:
-        url = f"{TRONGRID_API}/v1/accounts/{MERCHANT_ADDRESS}/transactions/trc20"
-        params = {"limit": 10, "only_confirmed": True}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as resp:
-                if resp.status != 200:
-                    logger.error(f"TronGrid error: {resp.status}")
-                    return False
-                data = await resp.json()
-                for tx in data.get("data", []):
-                    if tx.get("token_info", {}).get("symbol") != "USDT":
-                        continue
-                    if tx.get("to") != MERCHANT_ADDRESS:
-                        continue
-                    amount = float(tx.get("value", 0)) / 1e6
-                    tx_id = tx.get("transaction_id")
-                    if amount >= TOPUP_AMOUNT and tx_id not in used_transactions:
-                        used_transactions.add(tx_id)
-                        add_balance(session_id, TOPUP_AMOUNT)
-                        logger.info(f"Credited {TOPUP_AMOUNT} QRAP to {session_id} (tx: {tx_id})")
-                        return True
-        return False
-    except Exception as e:
-        logger.error(f"USDT error: {e}")
-        return False
 
 # ========== БАЗА ДАННЫХ ДЛЯ АКТИВАЦИЙ ==========
 def init_activations_db(db_path: str = "activations.db"):
@@ -766,37 +709,16 @@ async def send_to_cluster(session: aiohttp.ClientSession, cell_output: CellOutpu
 # ========== ЭНДПОИНТЫ ==========
 async def handle_session_init(request: web.Request):
     session_id = request.headers.get("X-Session-Id")
-    if not session_id or session_id not in session_balances:
+    if not session_id or session_id not in session_created:
         session_id = generate_session_id()
         init_session(session_id)
-    return web.json_response({"session_id": session_id, "balance": get_balance(session_id), "status": "ok"})
-
-async def handle_balance(request: web.Request):
-    session_id = request.headers.get("X-Session-Id")
-    if not session_id or session_id not in session_balances:
-        return web.json_response({"error": "Session not found"}, status=404)
-    return web.json_response({"session_id": session_id, "balance": get_balance(session_id)})
-
-async def handle_topup_request(request: web.Request):
-    return web.json_response({"address": MERCHANT_ADDRESS, "amount": TOPUP_AMOUNT, "currency": "USDT (TRC-20)"})
-
-async def handle_topup_check(request: web.Request):
-    session_id = request.headers.get("X-Session-Id")
-    if not session_id or session_id not in session_balances:
-        return web.json_response({"error": "Session not found"}, status=404)
-    success = await check_usdt_transfer(session_id)
-    if success:
-        return web.json_response({"status": "success", "balance": get_balance(session_id), "message": f"Credited {TOPUP_AMOUNT} QRAP"})
-    return web.json_response({"status": "pending", "balance": get_balance(session_id), "message": "Transaction not found"})
+    return web.json_response({"session_id": session_id, "status": "ok"})
 
 async def handle_process(request: web.Request):
     timer = AGENT_REQUEST_DURATION.time()
     session_id = request.headers.get("X-Session-Id")
-    if not session_id or session_id not in session_balances:
+    if not session_id or session_id not in session_created:
         return web.json_response({"error": "Session not initialized"}, status=401)
-    balance = get_balance(session_id)
-    if balance < MIN_BALANCE_TO_START:
-        return web.json_response({"error": "Insufficient balance", "balance": balance, "min_required": MIN_BALANCE_TO_START, "topup_needed": True}, status=402)
 
     # --- Автоматическая аппаратная аттестация ---
     hw_attestation = get_hardware_attestation()
@@ -816,8 +738,6 @@ async def handle_process(request: web.Request):
                                          MAX_REFLECTION_RETRIES, INSPECTOR_MODEL_PATH, INSPECTOR_SCALER_PATH, AUTO_TRAIN_INSPECTOR)
         cell_input = CellInput(prompt=task, session_id=session_id)
         supervisor_output = await supervisor.process(cell_input, prompt_type="default")
-        estimated_cost = 0.01
-        new_balance = deduct_balance(session_id, estimated_cost)
         block_id = hashlib.sha256(f"{CELL_ID}:{int(time.time())}".encode()).hexdigest()[:16]
         manifest = EntropyManifest(gamma=supervisor_output.confidence_score, nu=1, delta=0.0,
                                    mu_hash=hashlib.sha256(f"turbollm_{CELL_ID}".encode()).hexdigest()[:12],
@@ -835,7 +755,6 @@ async def handle_process(request: web.Request):
                 "activations_hash": supervisor_output.metadata.get("activations_hash"),
                 "model": TURBOLLM_MODEL,
                 "anomaly_detected": supervisor_output.metadata.get("anomaly_detected", False),
-                "cost": estimated_cost, "balance_after": new_balance,
                 "spectral_metrics": supervisor_output.metadata.get("spectral_metrics", {}),
                 "cosine_drift": supervisor_output.metadata.get("cosine_drift", 0.0),
                 "drift_from_anchor": supervisor_output.metadata.get("drift_from_anchor", 0.0),
@@ -854,8 +773,7 @@ async def handle_process(request: web.Request):
             delivered = await send_to_cluster(session, cell_output)
         AGENT_REQUESTS.labels(status=supervisor_output.status).inc()
         AGENT_CONFIDENCE.set(supervisor_output.confidence_score)
-        AGENT_BALANCE.set(new_balance)
-        return web.json_response({"status": "ok", "supervisor_status": supervisor_output.status, "cell": cell_output.dict(), "delivered": delivered, "balance": new_balance, "cost": estimated_cost})
+        return web.json_response({"status": "ok", "supervisor_status": supervisor_output.status, "cell": cell_output.dict(), "delivered": delivered})
     except Exception as e:
         logger.exception("Error in /process")
         return web.json_response({"error": str(e)}, status=500)
@@ -873,9 +791,6 @@ def main():
 
     app = web.Application()
     app.router.add_get("/session/init", handle_session_init)
-    app.router.add_get("/balance", handle_balance)
-    app.router.add_get("/topup/request", handle_topup_request)
-    app.router.add_get("/topup/check", handle_topup_check)
     app.router.add_post("/process", handle_process)
     app.router.add_post("/stream", handle_stream)
     app.router.add_post("/arbitrate", handle_arbitrate)

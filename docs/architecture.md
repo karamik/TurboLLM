@@ -49,7 +49,7 @@ This document describes the high‑level architecture of TurboLLM – a high‑p
   - Scans inputs/outputs for PII, trade secrets, forbidden patterns.
   - Configurable via regex, keyword lists, CIDR blocks.
 - **Admin Dashboard**:
-  - Real‑time usage stats, token consumption, cost estimation.
+  - Real‑time usage stats and LLM token throughput.
   - User/team management, audit logs.
 - **Authentication**: OAuth2 / LDAP integration, API key management.
 

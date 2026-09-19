@@ -67,7 +67,6 @@ TurboLLM is an **ecosystem** of four integrated layers:
 │   QRAP Blockchain                                           │
 │   - CellOutput recording (decision + metrics + PoI)         │
 │   - Arbitration verdicts, votes, corporate history          │
-│   - Token staking for governance                            │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -98,14 +97,13 @@ TurboLLM is an **ecosystem** of four integrated layers:
 
 ### 4. **Corporate Governance Suite**
 - **Decentralised Arbitration** – submit business disputes; the multi‑agent cluster with G‑Space analysis returns a **verifiable verdict** with rationale and confidence.
-- **Tamper‑proof Voting** – corporate votes are recorded on‑chain, with each vote requiring a token fee to prevent spam and manipulation.
+- **Tamper‑proof Voting** – corporate votes are recorded on‑chain, each vote is signed cryptographically. Anti‑spam is handled by rate limits and reputation.
 - **Immutable Company History** – every arbitration, vote, and major decision becomes part of a permanent, auditable ledger.
 
-### 5. **Tokenomics and Staking (QRAP)**
-- On registration, users get a **QRAP wallet and 100 QRAP tokens**.
-- **Staking** grants voting rights on supervisor parameters (confidence thresholds, agent count).
-- **Built‑in exchange** – users can top up their balance directly with USDT (TRC‑20) via the internal exchanger.
-- **Pay‑per‑use** – each API call costs a fraction of a QRAP token, creating a sustainable economic model.
+### 5. **Governance and Access (QRAP)**
+- On registration, users get a **QRAP identity and cryptographic keypair**.
+- Voting rights on supervisor parameters (confidence thresholds, agent count) are assigned by role and reputation.
+- API access is governed by policy and quotas.
 
 ### 6. **Enterprise Modules (Closed‑Source, Available on Request)**
 
@@ -114,7 +112,7 @@ TurboLLM is an **ecosystem** of four integrated layers:
 | **Smart Load Balancer** | Adaptive routing across GPUs/nodes, eliminating hot spots. |
 | **Prompt Cache** | Caches KV‑prefixes of frequent prompts – saves up to 70% compute. |
 | **Data Security & Filtering** | Scans inputs/outputs for PII, secrets, injections. |
-| **Admin Dashboard** | Web UI with token usage graphs, audit logs, staking management, and spectral metrics visualisation. |
+| **Admin Dashboard** | Web UI with usage graphs, audit logs, governance management, and spectral metrics visualisation. |
 | **Custom Authentication** | SSO (OAuth2, LDAP), API key management. |
 | **G‑Space Inspector Pro** | Advanced ML classifier with spectral and drift analysis, adaptive reference, and PoI. |
 
@@ -188,12 +186,12 @@ If liboqs is not installed, simulated mode is used. Production: pip install libo
 
 ## 📊 Comparison with Alternatives
 
-| Approach | Speed | Context | Security | Audit | Staking | Arbitration | Voting |
-|----------|-------|---------|----------|-------|---------|-------------|--------|
-| Hugging Face | 🟡 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
-| Plain vLLM | 🟢 | 🟢 | 🟡 | 🔴 | 🔴 | 🔴 | 🔴 |
-| TensorRT‑LLM | 🟢 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
-| **TurboLLM + G‑Space + QRAP** | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 |
+| Approach | Speed | Context | Security | Audit | Arbitration | Voting |
+|----------|-------|---------|----------|-------|-------------|--------|
+| Hugging Face | 🟡 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
+| Plain vLLM | 🟢 | 🟢 | 🟡 | 🔴 | 🔴 | 🔴 |
+| TensorRT‑LLM | 🟢 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 |
+| **TurboLLM + G‑Space + QRAP** | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 |
 
 ---
 
@@ -216,7 +214,6 @@ python -m turbollm.serve --model /path/to/model --port 8000
 # In another terminal – launch the agent supervisor
 export TURBOLLM_ENDPOINT="http://localhost:8000/v1"
 export CLUSTER_ENDPOINT="http://<qrap-ip>:<port>/api/v1/block"
-export MERCHANT_ADDRESS="your_tron_wallet"  # for USDT top‑ups
 python agent_cell.py
 ```
 
@@ -226,7 +223,6 @@ python agent_cell.py
 - **Streaming prompt**: `POST /stream`
 - **Arbitration**: `POST /arbitrate` (structured case)
 - **Vote**: `POST /vote`
-- **Top‑up balance**: `GET /topup/request` and `GET /topup/check`
 
 Example arbitration request:
 ```bash

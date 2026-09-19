@@ -7,7 +7,7 @@
 TurboLLM Enterprise extends the open‑source inference engine with a suite of **closed‑source, production‑ready modules** designed for large‑scale corporate deployments. These modules add critical business value:
 
 - **Security & Compliance** – prevent data leakage, enforce access control.
-- **Performance & Cost** – reduce redundant computation, maximize GPU utilization.
+- **Performance & Efficiency** – reduce redundant computation, maximize GPU utilization.
 - **Observability & Control** – comprehensive dashboards, audit trails, usage analytics.
 
 All enterprise modules are **optional** – they can be enabled/disabled independently via configuration.
@@ -19,9 +19,9 @@ All enterprise modules are **optional** – they can be enabled/disabled indepen
 | Module | Description | Key Benefit |
 |--------|-------------|-------------|
 | **Smart Load Balancer** | Distributes requests across multiple inference instances | High availability, optimal resource use |
-| **Prompt Cache** | Caches KV prefixes for frequent prompts | Reduces latency & compute cost by up to 70% |
+| **Prompt Cache** | Caches KV prefixes for frequent prompts | Reduces latency & compute load by up to 70% |
 | **Security Filtering** | Scans inputs/outputs for sensitive data | Prevents data leaks, ensures compliance |
-| **Admin Dashboard** | Web UI for monitoring usage, tokens, costs | Operational visibility |
+| **Admin Dashboard** | Web UI for monitoring usage and LLM token throughput | Operational visibility |
 | **Authentication & SSO** | API key management + OAuth2 / LDAP integration | Access control, user tracking |
 
 ---
@@ -94,7 +94,7 @@ Caches the **KV prefix** (key‑value cache state) for frequently used prompt te
 ### Benefits
 - **70% fewer FLOPs** for repetitive queries (e.g., RAG with same system prompt).
 - **First‑token latency** drops significantly (prefill skipped).
-- **Cost reduction** for high‑volume scenarios.
+- **Compute reduction** for high‑volume scenarios.
 
 ### Configuration
 
@@ -173,12 +173,11 @@ All matches are logged with:
 ## 4. Admin Dashboard
 
 ### Purpose
-A web‑based **control panel** for administrators to monitor usage, manage users, and analyze costs.
+A web‑based **control panel** for administrators to monitor usage, manage users, and inspect operational metrics.
 
 ### Features
 - **Real‑time metrics** – requests/sec, tokens/sec, active users, GPU load.
-- **Token consumption** – per user, per team, per model.
-- **Cost estimation** – shows estimated cost based on model size and usage (if using pay‑per‑token).
+- **LLM token throughput** – per user, per team, per model.
 - **User management** – create/revoke API keys, set rate limits.
 - **Audit logs** – view security events, errors, and request history.
 - **Alert configuration** – set thresholds for memory, latency, error rate.
