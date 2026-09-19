@@ -1,4 +1,4 @@
-#QRAP_LITE_SERVER_V3
+#QRAP_LITE_SERVER_V4
 """qrap-lite HTTP server (aiohttp)."""
 import argparse
 import logging
@@ -6,9 +6,11 @@ import os
 import sqlite3
 from pathlib import Path
 from aiohttp import web
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .ledger import Ledger
 from .signer import get_signer
+from . import metrics
 
 logger = logging.getLogger("qrap-lite.server")
 
@@ -57,7 +59,10 @@ def create_app(db_path, api_key=None):
         except Exception as e:
             return web.json_response({"error": f"invalid JSON: {e}"}, status=400)
         try:
-            info = ledger.append(cell_output)
+            with metrics.APPEND_DURATION.time():
+                info = ledger.append(cell_output)
+            metrics.APPENDS_TOTAL.inc()
+            metrics.refresh_gauges(ledger, db_path)
         except Exception as e:
             logger.exception("append failed")
             return web.json_response({"error": str(e)}, status=500)
@@ -86,16 +91,24 @@ def create_app(db_path, api_key=None):
         return web.json_response(proof)
 
     async def handle_verify_chain(request):
-        return web.json_response(ledger.verify_chain())
+        result = ledger.verify_chain()
+        metrics.VERIFY_TOTAL.labels(scope="chain", result="ok" if result.get("ok") else "fail").inc()
+        return web.json_response(result)
 
     async def handle_verify_block(request):
         block_id = request.match_info["block_id"]
         result = ledger.verify_block(block_id)
         if result is None:
             return web.json_response({"error": "not found"}, status=404)
+        metrics.VERIFY_TOTAL.labels(scope="block", result="ok" if result.get("ok") else "fail").inc()
         return web.json_response(result)
 
+    async def handle_metrics(request):
+        metrics.refresh_gauges(ledger, db_path)
+        return web.Response(body=generate_latest(), content_type=CONTENT_TYPE_LATEST.split(";")[0], charset="utf-8")
+
     async def handle_health(request):
+        metrics.refresh_gauges(ledger, db_path)
         return web.json_response({"status": "ok"})
 
     app = web.Application()
@@ -105,6 +118,7 @@ def create_app(db_path, api_key=None):
     app.router.add_get("/api/v1/blocks/{block_id}/verify", handle_verify_block)
     app.router.add_get("/api/v1/blocks/{block_id}/proof", handle_proof)
     app.router.add_get("/api/v1/verify", handle_verify_chain)
+    app.router.add_get("/metrics", handle_metrics)
     app.router.add_get("/health", handle_health)
     return app
 

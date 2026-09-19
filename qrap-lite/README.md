@@ -1,4 +1,4 @@
-#QRAP_LITE_README_V3
+#QRAP_LITE_README_V4
 # qrap-lite
 
 A minimal append-only ledger for provable auditing of TurboLLM decisions.
@@ -57,6 +57,7 @@ When the key is not set:
 | GET    | /api/v1/blocks/{block_id}/proof     | no   | Export a full proof package for a block        |
 | GET    | /api/v1/verify                      | no   | Verify the integrity of the entire hash chain  |
 | GET    | /health                             | no   | Liveness probe                                 |
+| GET    | /metrics                            | no   | Prometheus metrics                             |
 
 * Auth only when QRAP_LITE_API_KEY is set.
 
@@ -87,6 +88,25 @@ When the key is not set:
 
     # Verify the whole chain
     curl http://localhost:50051/api/v1/verify
+
+## Prometheus metrics
+
+GET /metrics exposes the following series (prefix qrap_lite_):
+
+| Metric | Type | Meaning |
+|--------|------|---------|
+| qrap_lite_blocks_total | Gauge | Current number of blocks in the ledger |
+| qrap_lite_appends_total | Counter | Successful POST /api/v1/block calls |
+| qrap_lite_append_duration_seconds | Histogram | Latency of ledger.append |
+| qrap_lite_verify_total{scope,result} | Counter | verify calls (chain or block) by result |
+| qrap_lite_db_size_bytes | Gauge | Size of the SQLite ledger file |
+
+Scrape config for Prometheus:
+
+    scrape_configs:
+      - job_name: qrap-lite
+        static_configs:
+          - targets: ["localhost:50051"]
 
 ## Offline verification
 

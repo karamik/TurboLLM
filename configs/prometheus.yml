@@ -30,5 +30,5 @@ scrape_configs:
   # QRAP node (если есть метрики)
   - job_name: 'qrap'
     static_configs:
-      - targets: ['qrap-node:50051']  # если QRAP выдает метрики
+      - targets: ['localhost:50051']  # если QRAP выдает метрики
     scrape_interval: 30s
