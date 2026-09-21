@@ -1,6 +1,7 @@
-#QRAP_LITE_SERVER_V4
+#QRAP_LITE_SERVER_V5
 """qrap-lite HTTP server (aiohttp)."""
 import argparse
+import hashlib
 import logging
 import os
 import sqlite3
@@ -103,6 +104,22 @@ def create_app(db_path, api_key=None):
         metrics.VERIFY_TOTAL.labels(scope="block", result="ok" if result.get("ok") else "fail").inc()
         return web.json_response(result)
 
+    async def handle_manifesto(request):
+        anchor = ledger.get_manifesto_anchor()
+        if anchor is None:
+            return web.json_response({"anchored": False}, status=404)
+        result = {"anchored": True, **anchor}
+        path = anchor.get("manifesto_path")
+        if path and os.path.exists(path):
+            try:
+                with open(path, "rb") as f:
+                    current = hashlib.sha256(f.read()).hexdigest()
+                result["manifesto_hash_current"] = current
+                result["match"] = current == anchor.get("manifesto_hash")
+            except Exception as e:
+                result["manifesto_hash_current_error"] = str(e)
+        return web.json_response(result)
+
     async def handle_metrics(request):
         metrics.refresh_gauges(ledger, db_path)
         return web.Response(body=generate_latest(), content_type=CONTENT_TYPE_LATEST.split(";")[0], charset="utf-8")
@@ -118,6 +135,7 @@ def create_app(db_path, api_key=None):
     app.router.add_get("/api/v1/blocks/{block_id}/verify", handle_verify_block)
     app.router.add_get("/api/v1/blocks/{block_id}/proof", handle_proof)
     app.router.add_get("/api/v1/verify", handle_verify_chain)
+    app.router.add_get("/api/v1/manifesto", handle_manifesto)
     app.router.add_get("/metrics", handle_metrics)
     app.router.add_get("/health", handle_health)
     return app

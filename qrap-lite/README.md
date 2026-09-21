@@ -1,4 +1,4 @@
-#QRAP_LITE_README_V4
+#QRAP_LITE_README_V5
 # qrap-lite
 
 A minimal append-only ledger for provable auditing of TurboLLM decisions.
@@ -58,6 +58,7 @@ When the key is not set:
 | GET    | /api/v1/verify                      | no   | Verify the integrity of the entire hash chain  |
 | GET    | /health                             | no   | Liveness probe                                 |
 | GET    | /metrics                            | no   | Prometheus metrics                             |
+| GET    | /api/v1/manifesto                   | no   | Manifesto anchor (hash + signature)            |
 
 * Auth only when QRAP_LITE_API_KEY is set.
 
@@ -88,6 +89,39 @@ When the key is not set:
 
     # Verify the whole chain
     curl http://localhost:50051/api/v1/verify
+
+## Manifesto anchoring
+
+The Manifesto (see `docs/manifesto.md`) can be anchored as the genesis
+block of a fresh ledger. Its SHA-256 hash is written into the first block,
+signed with the node PQ key, and becomes immutable.
+
+    cd qrap-lite
+    python3 anchor_manifesto.py --db qrap_lite.db --manifesto ../docs/manifesto.md
+
+This resets a non-empty ledger unless it is already empty. Use `--force`
+to overwrite an existing database.
+
+After anchoring:
+
+    curl http://localhost:50051/api/v1/manifesto
+
+Returns the anchor block, the stored manifesto hash, and a live check
+against the file on disk:
+
+    {
+      "anchored": true,
+      "block_id": "manifesto",
+      "height": 1,
+      "manifesto_hash": "...",
+      "manifesto_hash_current": "...",
+      "match": true,
+      "signature": { ... },
+      "pubkey": "..."
+    }
+
+If `match` is false, the file `docs/manifesto.md` was changed after the
+anchor was written. The ledger still proves what was originally anchored.
 
 ## Prometheus metrics
 

@@ -123,3 +123,32 @@ def test_compute_block_hash_changes_with_content():
     h1 = _compute_block_hash("0" * 64, {"a": 1})
     h2 = _compute_block_hash("0" * 64, {"a": 2})
     assert h1 != h2
+
+
+# --- Manifesto anchoring ---
+
+def test_manifesto_anchor_missing_when_empty(ledger):
+    assert ledger.get_manifesto_anchor() is None
+
+
+def test_manifesto_anchor_found_after_append(ledger):
+    ledger.append({"type": "manifesto", "block_id": "manifesto",
+                   "manifesto_hash": "a" * 64})
+    a = ledger.get_manifesto_anchor()
+    assert a is not None
+    assert a["block_id"] == "manifesto"
+    assert a["height"] == 1
+    assert a["manifesto_hash"] == "a" * 64
+
+
+def test_manifesto_anchor_survives_following_blocks(ledger):
+    ledger.append({"type": "manifesto", "block_id": "manifesto",
+                   "manifesto_hash": "b" * 64})
+    ledger.append({"block_id": "b1"})
+    ledger.append({"block_id": "b2"})
+    a = ledger.get_manifesto_anchor()
+    assert a is not None
+    assert a["height"] == 1
+    r = ledger.verify_chain()
+    assert r["ok"] is True
+    assert r["height"] == 3

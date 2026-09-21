@@ -1,4 +1,4 @@
-#QRAP_LITE_LEDGER_V3
+#QRAP_LITE_LEDGER_V4
 """Append-only block ledger with a hash chain and PQ signatures."""
 import hashlib
 import json
@@ -168,6 +168,30 @@ class Ledger:
             if not self.signer.verify_dict({"block_hash": row["block_hash"]}, sig_info):
                 return {"ok": False, "block_id": block_id, "height": row["height"], "error": "signature invalid"}
             return {"ok": True, "block_id": block_id, "height": row["height"]}
+        finally:
+            conn.close()
+
+    def get_manifesto_anchor(self):
+        conn = self._conn()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM blocks ORDER BY height ASC"
+            ).fetchall()
+            for row in rows:
+                cell = json.loads(row["cell_output"])
+                if cell.get("type") == "manifesto":
+                    return {
+                        "block_id": row["block_id"],
+                        "height": row["height"],
+                        "block_hash": row["block_hash"],
+                        "manifesto_hash": cell.get("manifesto_hash"),
+                        "manifesto_path": cell.get("manifesto_path"),
+                        "manifesto_version": cell.get("manifesto_version"),
+                        "anchored_at": cell.get("anchored_at"),
+                        "signature": json.loads(row["signature"]),
+                        "pubkey": row["pubkey"],
+                    }
+            return None
         finally:
             conn.close()
 

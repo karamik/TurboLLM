@@ -268,7 +268,11 @@ What can be built on top of the existing TurboLLM:
   verification.
 - **`hardware_attestation.py`** - PUF binding to a specific chip.
 - **Signed Manifesto**, whose hash is written into the first block of the
-  journal.
+  journal. Implemented: `qrap-lite/anchor_manifesto.py` writes
+  `docs/manifesto.md` as the genesis block. The endpoint
+  `GET /api/v1/manifesto` returns the anchor and re-checks the file hash
+  against the stored value. If the file was modified after anchoring,
+  `match` is false, but the ledger still proves what was originally signed.
 - **Classifier** - a separate process that only signals; it does not act.
 - **Operator** - a human who reads the log and makes decisions.
 - **Firmware registry** - a signed file, updated by the factory owner.
