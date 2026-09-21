@@ -49,7 +49,7 @@ def main():
 
     if args.force and os.path.exists(args.db):
         os.remove(args.db)
-        print(f"removed existing {args.db}")
+        print(f"removed existing {args.db}", file=sys.stderr)
 
     conn = sqlite3.connect(args.db)
     conn.executescript(_SCHEMA)
