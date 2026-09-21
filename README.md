@@ -257,6 +257,21 @@ Every CellOutput is hash-chained and PQ-signed. No tokens, no fees, no wallets.
 - Optional Bearer auth via `QRAP_LITE_API_KEY`.
 - Integration: `export CLUSTER_ENDPOINT="http://localhost:50051/api/v1/block"`
 
+## 🏛️ Governance roles
+
+Four explicit roles, each with a trace in the same append-only ledger.
+See `docs/security-protocol.md` for the reasoning.
+
+| Role | Document | Code |
+|------|----------|------|
+| **Legislator** | [docs/manifesto.md](docs/manifesto.md) | `qrap-lite/anchor_manifesto.py` (auto-anchored on first run) |
+| **Classifier** | [docs/security-protocol.md](docs/security-protocol.md) | `qrap-lite/classifier.py` |
+| **Operator** | [docs/security-protocol.md](docs/security-protocol.md) | `qrap-lite/operator_cli.py` |
+| **Factory owner** | [docs/firmware-registry.md](docs/firmware-registry.md) | `qrap-lite/verify_registry.py` |
+
+None of these roles is "external" to the system. None is powerless.
+Each is named, constrained, and leaves a cryptographic trace.
+
 ## 📬 Contact & Support
 
 For technical support and integration questions:

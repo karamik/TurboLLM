@@ -1,7 +1,9 @@
-#QRAP_LITE_SERVER_V5
+#QRAP_LITE_SERVER_V6
 """qrap-lite HTTP server (aiohttp)."""
 import argparse
 import hashlib
+import json
+from datetime import datetime, timezone
 import logging
 import os
 import sqlite3
@@ -43,6 +45,48 @@ def _check_auth(request, api_key):
     return header[7:].strip() == api_key
 
 
+def _auto_anchor_manifesto(ledger, db_path):
+    """On first run, anchor ../docs/manifesto.md if the ledger is empty."""
+    try:
+        conn = ledger._conn()
+        try:
+            n = conn.execute("SELECT COUNT(*) AS n FROM blocks").fetchone()["n"]
+        finally:
+            conn.close()
+        if n > 0:
+            return None
+        here = Path(db_path).resolve().parent
+        candidates = [
+            here / "docs" / "manifesto.md",
+            here.parent / "docs" / "manifesto.md",
+            here.parent.parent / "docs" / "manifesto.md",
+        ]
+        manifesto = None
+        for c in candidates:
+            if c.exists():
+                manifesto = c
+                break
+        if manifesto is None:
+            logger.info("manifesto not found, skipping auto-anchor")
+            return None
+        raw = manifesto.read_bytes()
+        mh = hashlib.sha256(raw).hexdigest()
+        cell = {
+            "type": "manifesto",
+            "block_id": "manifesto",
+            "manifesto_hash": mh,
+            "manifesto_path": str(manifesto),
+            "manifesto_version": "1.0",
+            "anchored_at": datetime.now(timezone.utc).isoformat(),
+        }
+        info = ledger.append(cell)
+        logger.info("auto-anchored manifesto: %s", info["block_id"])
+        return info
+    except Exception as e:
+        logger.warning("auto-anchor failed: %s", e)
+        return None
+
+
 def create_app(db_path, api_key=None):
     db_path = str(Path(db_path).resolve())
     conn = sqlite3.connect(db_path)
@@ -51,6 +95,7 @@ def create_app(db_path, api_key=None):
     signer = get_signer(conn)
     conn.close()
     ledger = Ledger(db_path, signer)
+    _auto_anchor_manifesto(ledger, db_path)
 
     async def handle_append(request):
         if not _check_auth(request, api_key):
