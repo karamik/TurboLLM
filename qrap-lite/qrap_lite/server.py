@@ -1,4 +1,4 @@
-#QRAP_LITE_SERVER_V6
+#QRAP_LITE_SERVER_V7
 """qrap-lite HTTP server (aiohttp)."""
 import argparse
 import hashlib
@@ -87,7 +87,7 @@ def _auto_anchor_manifesto(ledger, db_path):
         return None
 
 
-def create_app(db_path, api_key=None):
+def create_app(db_path, api_key=None, classifier_report=None):
     db_path = str(Path(db_path).resolve())
     conn = sqlite3.connect(db_path)
     conn.executescript(_SCHEMA)
@@ -167,10 +167,14 @@ def create_app(db_path, api_key=None):
 
     async def handle_metrics(request):
         metrics.refresh_gauges(ledger, db_path)
+        metrics.refresh_operator_metrics(ledger)
+        metrics.refresh_classifier_metrics(classifier_report)
         return web.Response(body=generate_latest(), content_type=CONTENT_TYPE_LATEST.split(";")[0], charset="utf-8")
 
     async def handle_health(request):
         metrics.refresh_gauges(ledger, db_path)
+        metrics.refresh_operator_metrics(ledger)
+        metrics.refresh_classifier_metrics(classifier_report)
         return web.json_response({"status": "ok"})
 
     app = web.Application()
@@ -194,14 +198,17 @@ def main():
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
     api_key = os.getenv("QRAP_LITE_API_KEY", "").strip()
+    classifier_report = os.getenv("QRAP_LITE_CLASSIFIER_REPORT", "").strip() or None
     logging.basicConfig(
         level=getattr(logging, args.log_level.upper(), logging.INFO),
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
+    if classifier_report:
+        logger.info("Classifier report path: %s", classifier_report)
     if api_key:
         logger.info("API key authentication is ENABLED for POST endpoints")
     else:
         logger.info("API key authentication is DISABLED (QRAP_LITE_API_KEY not set)")
-    app = create_app(args.db, api_key=api_key or None)
+    app = create_app(args.db, api_key=api_key or None, classifier_report=classifier_report)
     logger.info("qrap-lite starting on %s:%s (db=%s)", args.host, args.port, args.db)
     web.run_app(app, host=args.host, port=args.port)

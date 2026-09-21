@@ -181,3 +181,56 @@ def test_metrics_endpoint(app_open):
         assert "qrap_lite_blocks_total" in text
         await c.close()
     asyncio.run(go())
+
+
+# --- Operator and classifier metrics ---
+
+def test_operator_actions_metric_after_log_action(app_open, tmp_path):
+    async def go():
+        c = await _client(app_open)
+        await c.start_server()
+        await c.post("/api/v1/block", json={"type": "operator_action",
+                                             "block_id": "op-1",
+                                             "operator": "alice",
+                                             "action": "investigate"})
+        await c.post("/api/v1/block", json={"type": "operator_action",
+                                             "block_id": "op-2",
+                                             "operator": "alice",
+                                             "action": "investigate"})
+        await c.post("/api/v1/block", json={"type": "operator_action",
+                                             "block_id": "op-3",
+                                             "operator": "bob",
+                                             "action": "escalate"})
+        r = await c.get("/metrics")
+        text = await r.text()
+        assert 'qrap_lite_operator_actions_total{action="investigate",operator="alice"} 2.0' in text
+        assert 'qrap_lite_operator_actions_total{action="escalate",operator="bob"} 1.0' in text
+        await c.close()
+    asyncio.run(go())
+
+
+def test_classifier_metrics_from_report(app_open, tmp_path):
+    report = tmp_path / "report.json"
+    report.write_text(
+        '{"generated_at": "2026-09-21T20:00:00+00:00", "signals": ['
+        '{"rule_id": "R3", "severity": "WARNING"},'
+        '{"rule_id": "R3", "severity": "WARNING"},'
+        '{"rule_id": "R4", "severity": "WARNING"}]}'
+    )
+    # Recreate app with classifier_report pointing at the report
+    from qrap_lite.server import create_app
+    import os, tempfile
+    tmp = tempfile.mkdtemp(prefix="clf_srv_")
+    db = os.path.join(tmp, "test.db")
+    app = create_app(db, api_key=None, classifier_report=str(report))
+
+    async def go():
+        c = await _client(app)
+        await c.start_server()
+        r = await c.get("/metrics")
+        text = await r.text()
+        assert 'qrap_lite_classifier_signals_total{rule_id="R3",severity="WARNING"} 2.0' in text
+        assert 'qrap_lite_classifier_signals_total{rule_id="R4",severity="WARNING"} 1.0' in text
+        assert 'qrap_lite_classifier_last_run_timestamp' in text
+        await c.close()
+    asyncio.run(go())

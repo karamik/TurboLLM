@@ -1,4 +1,4 @@
-#QRAP_LITE_README_V6
+#QRAP_LITE_README_V7
 # qrap-lite
 
 A minimal append-only ledger for provable auditing of TurboLLM decisions.
@@ -176,6 +176,14 @@ GET /metrics exposes the following series (prefix qrap_lite_):
 | qrap_lite_append_duration_seconds | Histogram | Latency of ledger.append |
 | qrap_lite_verify_total{scope,result} | Counter | verify calls (chain or block) by result |
 | qrap_lite_db_size_bytes | Gauge | Size of the SQLite ledger file |
+| qrap_lite_operator_actions_total{operator,action} | Gauge | Operator actions recorded in the ledger |
+| qrap_lite_classifier_signals_total{rule_id,severity} | Gauge | Signals from the latest classifier report |
+| qrap_lite_classifier_last_run_timestamp | Gauge | Unix timestamp of the last classifier run |
+
+Operator metrics are derived from the ledger on every scrape.
+Classifier metrics are derived from a report file, if `QRAP_LITE_CLASSIFIER_REPORT`
+is set to its path before starting the server. The classifier itself never
+writes to the ledger.
 
 Scrape config for Prometheus:
 
