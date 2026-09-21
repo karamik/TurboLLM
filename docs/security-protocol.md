@@ -274,7 +274,11 @@ What can be built on top of the existing TurboLLM:
   against the stored value. If the file was modified after anchoring,
   `match` is false, but the ledger still proves what was originally signed.
 - **Classifier** - a separate process that only signals; it does not act.
+  Implemented: `qrap-lite/classifier.py`. Transparent rules, versioned,
+  no ML, no writes to the ledger.
 - **Operator** - a human who reads the log and makes decisions.
+  Implemented: `qrap-lite/operator_cli.py`. Every operator action is
+  recorded as a signed block in the same ledger the operator reads.
 - **Firmware registry** - a signed file, updated by the factory owner.
 
 This is enough to **test the hypothesis** that power can be explicitly

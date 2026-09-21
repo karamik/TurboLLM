@@ -1,4 +1,4 @@
-#QRAP_LITE_README_V5
+#QRAP_LITE_README_V6
 # qrap-lite
 
 A minimal append-only ledger for provable auditing of TurboLLM decisions.
@@ -122,6 +122,48 @@ against the file on disk:
 
 If `match` is false, the file `docs/manifesto.md` was changed after the
 anchor was written. The ledger still proves what was originally anchored.
+
+## Classifier and operator
+
+Two separate roles, deliberately kept apart.
+
+### Classifier
+
+Reads the ledger, applies transparent rules, produces a report.
+Does not write to the ledger. Does not act. Only signals.
+
+    cd qrap-lite
+    python3 classifier.py --endpoint http://localhost:50051 --out report.json
+
+Rules (version 1.0):
+
+| Rule | Severity | Triggers when |
+|------|----------|---------------|
+| R1 chain_integrity | CRITICAL | verify returns ok=false |
+| R2 consecutive_blocks | WARNING | 3+ consecutive BLOCKED decisions |
+| R3 high_drift | WARNING | cosine_drift > 0.30 |
+| R4 low_confidence | WARNING | confidence < 0.50 |
+| R5 block_rate_spike | INFO | >100 blocks in last 60 minutes |
+
+Each signal records rule id, rule version, evidence, and rule_confidence
+(the confidence in the rule itself, not in the signal).
+
+### Operator
+
+Reads the ledger, runs the classifier, and records actions.
+
+    cd qrap-lite
+    python3 operator_cli.py --db qrap_lite.db status
+    python3 operator_cli.py --db qrap_lite.db blocks --limit 20
+    python3 operator_cli.py --db qrap_lite.db classify --endpoint http://localhost:50051
+    python3 operator_cli.py --db qrap_lite.db log-action \
+        --operator alice --action investigate --target b42 --note "high drift"
+
+Every operator action is recorded as a signed block in the same ledger the
+operator reads. There is no separate audit trail. There is no way to record
+an action that leaves no trace.
+
+See `docs/security-protocol.md` for the reasoning behind this split.
 
 ## Prometheus metrics
 
